@@ -135,78 +135,9 @@ def load_data():
         df['imc_categorie'] = df['imc'].apply(cat_imc)
     return df
 
-# ════════════════════════════════════════════════════════════
-# IMPORT FICHIER
-# ════════════════════════════════════════════════════════════
-with st.sidebar:
-    st.header("📂 Données")
-    uploaded_file = st.file_uploader(
-        "Charger un fichier Excel ou CSV",
-        type=["xlsx", "xls", "csv"],
-        help="Glissez-déposez ou cliquez pour sélectionner votre fichier de données.",
-        key="mbi_sidebar_uploader",
-    )
-
-if uploaded_file is not None:
-    _bytes = uploaded_file.read()
-    if _bytes:
-        st.session_state["mbi_file_bytes"] = _bytes
-        st.session_state["mbi_file_name"] = uploaded_file.name
-
-if "mbi_file_bytes" not in st.session_state:
-    _default_df = load_data()
-    if _default_df.empty:
-        st.info("📂 Veuillez charger un fichier de données (Excel ou CSV) pour démarrer l'analyse.")
-        _main_up = st.file_uploader(
-            "Ou importez votre fichier ici",
-            type=["xlsx", "xls", "csv"],
-            help="Importer un fichier depuis la zone principale.",
-            key="mbi_main_uploader",
-        )
-        if _main_up is not None:
-            _b = _main_up.read()
-            if _b:
-                st.session_state["mbi_file_bytes"] = _b
-                st.session_state["mbi_file_name"] = _main_up.name
-        if "mbi_file_bytes" not in st.session_state:
-            st.stop()
-    else:
-        df = _default_df
-else:
-    import io as _io
-    _fn = st.session_state["mbi_file_name"]
-    _buf = _io.BytesIO(st.session_state["mbi_file_bytes"])
-    try:
-        if _fn.lower().endswith(".csv"):
-            df = pd.read_csv(_buf, sep=None, engine="python")
-        else:
-            df = pd.read_excel(_buf)
-        # Recalcul des scores MBI si nécessaire
-        q_ee = ['mbi_q1','mbi_q2','mbi_q3','mbi_q6','mbi_q8','mbi_q13','mbi_q14','mbi_q16','mbi_q20']
-        q_dp = ['mbi_q5','mbi_q10','mbi_q11','mbi_q15','mbi_q22']
-        q_pa = ['mbi_q4','mbi_q7','mbi_q9','mbi_q12','mbi_q17','mbi_q18','mbi_q19','mbi_q21']
-        if all(c in df.columns for c in q_ee):
-            df['ee_score'] = df[q_ee].sum(axis=1)
-            df['dp_score'] = df[q_dp].sum(axis=1)
-            df['pa_score'] = df[q_pa].sum(axis=1)
-            def _cat_ee(s): return 'Faible' if s<=16 else ('Modéré' if s<=26 else 'Élevé')
-            def _cat_dp(s): return 'Faible' if s<=6  else ('Modéré' if s<=12 else 'Élevé')
-            def _cat_pa(s): return 'Élevé'  if s>=39 else ('Modéré' if s>=32 else 'Faible')
-            df['ee_categorie'] = df['ee_score'].apply(_cat_ee)
-            df['dp_categorie'] = df['dp_score'].apply(_cat_dp)
-            df['pa_categorie'] = df['pa_score'].apply(_cat_pa)
-            def _cls(r):
-                ee, dp, pa = r['ee_categorie'], r['dp_categorie'], r['pa_categorie']
-                if ee=='Faible' and dp=='Faible' and pa=='Élevé': return 'Pas de burnout'
-                if (ee=='Élevé' and dp=='Élevé') or (ee=='Élevé' and pa=='Faible'): return 'Burnout avéré'
-                return 'Pré-burnout'
-            df['niveau_burnout'] = df.apply(_cls, axis=1)
-    except Exception as e:
-        st.error(f"❌ Erreur lors du chargement du fichier : {e}")
-        st.stop()
-
+df = load_data()
 if df.empty:
-    st.error("❌ Fichier de données introuvable ou vide.")
+    st.error("❌ Fichier de données introuvable.")
     st.stop()
 
 total_analyses = len(df)
@@ -233,13 +164,13 @@ st.markdown(
     'background:white;border-radius:12px;padding:14px 24px;margin-bottom:20px;'
     'box-shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 12px rgba(30,64,175,0.08);'
     'border:1px solid #e8edf5;">'
-    '<div style="display:flex;align-items:center;gap:12px;">'
-    '<div style="width:38px;height:38px;background:linear-gradient(135deg,#dc2626,#ef4444);'
-    'border-radius:10px;display:flex;align-items:center;justify-content:center;">'
-    '<i class="fas fa-fire" style="color:white;font-size:15px;"></i></div>'
-    '<div>'
-    '<div style="font-size:16px;font-weight:700;color:#1e293b;">MBI — Maslach Burnout Inventory</div>'
-    '<div style="font-size:11px;color:#64748b;margin-top:1px;">Analyse du burnout professionnel · Pahaliah &amp; Fils</div>'
+    '<div style="display:flex;align-items:center;gap:14px;flex:1;justify-content:center;">'
+    '<div style="width:48px;height:48px;background:linear-gradient(135deg,#dc2626,#ef4444);'
+    'border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
+    '<i class="fas fa-fire" style="color:white;font-size:20px;"></i></div>'
+    '<div style="text-align:center;">'
+    '<div style="font-size:26px;font-weight:700;color:#1e293b;letter-spacing:-0.5px;">MBI — Maslach Burnout Inventory</div>'
+    '<div style="font-size:15px;font-weight:600;color:#334866;margin-top:5px;letter-spacing:0.2px;">Analyse du burnout professionnel · Pahaliah &amp; Fils</div>'
     '</div></div>'
     '<a href="/" target="_self" style="text-decoration:none;">'
     '<div style="display:flex;align-items:center;gap:8px;padding:7px 14px;'
@@ -292,20 +223,21 @@ onglet1, onglet2 = st.tabs([
 # ╚══════════════════════════════════════════════════════════╝
 with onglet1:
 
-    # ── 4 KPI ─────────────────────────────────────────────
+    # ── 3 KPI — Population + genre majoritaire + Âge moyen ───
     sec("Vue d'ensemble de la population analysée")
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown(kpi("fas fa-users","#1e40af","#eff6ff","#3b82f6",
             f"{pct_analyses:.1f}","%",f"{total_analyses} collaborateurs analysés","Population analysée"),
             unsafe_allow_html=True)
     with c2:
-        st.markdown(kpi("fas fa-female","#7c3aed","#f5f3ff","#a78bfa",
-            f"{pct_f:.1f}","%",f"{nb_f} collaboratrices","Femmes"), unsafe_allow_html=True)
+        if nb_f > nb_h:
+            st.markdown(kpi("fas fa-female","#7c3aed","#f5f3ff","#a78bfa",
+                f"{pct_f:.1f}","%",f"{nb_f} collaboratrices","Femmes"), unsafe_allow_html=True)
+        else:
+            st.markdown(kpi("fas fa-male","#0369a1","#f0f9ff","#38bdf8",
+                f"{pct_h:.1f}","%",f"{nb_h} collaborateurs","Hommes"), unsafe_allow_html=True)
     with c3:
-        st.markdown(kpi("fas fa-male","#0369a1","#f0f9ff","#38bdf8",
-            f"{pct_h:.1f}","%",f"{nb_h} collaborateurs","Hommes"), unsafe_allow_html=True)
-    with c4:
         st.markdown(kpi("far fa-calendar-alt","#0f766e","#f0fdfa","#2dd4bf",
             age_moy," ans","","Âge moyen"), unsafe_allow_html=True)
 
@@ -402,23 +334,26 @@ with onglet1:
         total_u  = counts_u.sum()
         pcts_u   = (counts_u / total_u * 100).round(1)
 
-        # ── Genre : pie rose/bleu avec labels intérieurs ──
+        # ── Genre : pie rose/bleu — label uniquement sur segment majoritaire ──
         if sel_col == 'genre':
-            fig, ax = plt.subplots(figsize=(3.8, 3.0))
+            fig, ax = plt.subplots(figsize=(3.8, 3.2))
             fig.patch.set_facecolor('#f1f4f9'); ax.set_facecolor('#f1f4f9')
             color_map = {'Femme':'#a78bfa','femme':'#a78bfa','F':'#a78bfa',
                          'Homme':'#38bdf8','homme':'#38bdf8','H':'#38bdf8'}
             colors_g = [color_map.get(str(k),'#1e40af') for k in pcts_u.index]
-            wedges, _ = ax.pie(pcts_u.values, labels=None, colors=colors_g,
+            dominant_g = pcts_u.idxmax()
+            colors_g2 = [color_map.get(str(k),'#1e40af') if k == dominant_g else '#f1f4f9' for k in pcts_u.index]
+            wedges, _ = ax.pie(pcts_u.values, labels=None, colors=colors_g2,
                                startangle=90, wedgeprops=dict(edgecolor='white', linewidth=2))
             for wedge, (k, v) in zip(wedges, pcts_u.items()):
-                angle = (wedge.theta1 + wedge.theta2) / 2
-                x = 0.55 * np.cos(np.radians(angle))
-                y = 0.55 * np.sin(np.radians(angle))
-                ax.text(x, y, f"{k}\n{v:.1f}%\n(n={counts_u[k]})",
-                        ha='center', va='center', color='white',
-                        fontsize=8, fontweight='bold', linespacing=1.3)
-            ax.set_title(f"Distribution des Employés\nde l'Entreprise Pahaliah & Fils\nselon : {sel_label}",
+                if k == dominant_g:
+                    angle = (wedge.theta1 + wedge.theta2) / 2
+                    x = 0.55 * np.cos(np.radians(angle))
+                    y = 0.55 * np.sin(np.radians(angle))
+                    ax.text(x, y, f"{k}\n{v:.1f}%\n({counts_u[k]})",
+                            ha='center', va='center', color='white',
+                            fontsize=8, fontweight='bold', linespacing=1.3)
+            ax.set_title(f"Répartition des Employés\nde l'Entreprise Pahaliah & Fils\nselon : {sel_label}",
                          fontsize=11, fontweight='bold', color='#1e293b', pad=10)
             plt.tight_layout()
             _, cc, _ = st.columns([1,1,1])
@@ -441,7 +376,7 @@ with onglet1:
                     angle = (wedge.theta1 + wedge.theta2) / 2
                     x = 0.55 * np.cos(np.radians(angle))
                     y = 0.55 * np.sin(np.radians(angle))
-                    ax.text(x, y, f"{k}\n{v:.1f}%\n(n={counts_u[k]})",
+                    ax.text(x, y, f"{k}\n{v:.1f}%\n({counts_u[k]})",
                             ha='center', va='center', color='white',
                             fontsize=8, fontweight='bold', linespacing=1.3)
             minority = [k for k in pcts_u.index if k != dominant][0]
@@ -449,7 +384,7 @@ with onglet1:
                          Patch(facecolor='#e2e8f0', edgecolor='#ccc',  label=f"{minority}")]
             ax.legend(handles=legend_el, loc='lower center',
                       bbox_to_anchor=(0.5,-0.12), ncol=2, fontsize=8, frameon=False)
-            ax.set_title(f"Distribution des Employés\nde l'Entreprise Pahaliah & Fils\nselon : {sel_label}",
+            ax.set_title(f"Répartition des Employés\nde l'Entreprise Pahaliah & Fils\nselon : {sel_label}",
                          fontsize=11, fontweight='bold', color='#1e293b', pad=10)
             plt.tight_layout()
             _, cc, _ = st.columns([1,1,1])
@@ -476,7 +411,7 @@ with onglet1:
             max_v = pcts_u.max()
             for bar, lbl, pv, cv in zip(bars, counts_u.index, pcts_u.values, counts_u.values):
                 h    = bar.get_height()
-                text = f"{pv:.1f}%\n(n={int(cv)})"
+                text = f"{pv:.1f}%\n({int(cv)})"
                 if h > max_v * 0.15:
                     ax.text(bar.get_x()+bar.get_width()/2, h/2, text,
                             ha='center', va='center', color='white',
@@ -493,7 +428,7 @@ with onglet1:
             ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False)
             ax.spines['left'].set_color('#cbd5e1'); ax.spines['bottom'].set_color('#cbd5e1')
             ax.set_ylim(0, max_v * 1.25)
-            ax.set_title(f"Distribution des Employés\nde l'Entreprise Pahaliah & Fils\nselon : {sel_label}",
+            ax.set_title(f"Répartition des Employés\nde l'Entreprise Pahaliah & Fils\nselon : {sel_label}",
                          fontsize=14, fontweight='bold', color='#1e293b', pad=16)
             plt.tight_layout()
             st.pyplot(fig, use_container_width=True)
@@ -563,9 +498,10 @@ with onglet2:
     st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
 
 
-    score_risque = round((0.5 * pct_pre) + (1.0 * pct_avere), 1)
-    if   score_risque < 30: j_statut, j_couleur, j_icone, j_msg = "Sain",      "#16a34a", '<i class="fas fa-check-circle"></i>', f"L'entreprise Pahaliah &amp; Fils se situe en zone saine. L'exposition des employés au burnout est faible et la santé psychosociale des employés est globalement préservée."
-    elif score_risque < 50: j_statut, j_couleur, j_icone, j_msg = "Vigilance", "#d97706", '<i class="fas fa-exclamation-triangle"></i>', f"L'entreprise Pahaliah &amp; Fils se situe en zone de vigilance. L'exposition des employés au burnout est significative et nécessite un suivi actif."
+    score_brut    = (0.5 * pct_avere) + (0.3 * pct_pre) + (0.2 * pct_pas)
+    score_risque  = round(100 - score_brut, 1)
+    if   score_risque < 26: j_statut, j_couleur, j_icone, j_msg = "Sain",      "#16a34a", '<i class="fas fa-check-circle"></i>', f"L'entreprise Pahaliah &amp; Fils se situe en zone saine. L'exposition des employés au burnout est faible et la santé psychosociale des employés est globalement préservée."
+    elif score_risque < 75: j_statut, j_couleur, j_icone, j_msg = "Vigilance", "#d97706", '<i class="fas fa-exclamation-triangle"></i>', f"L'entreprise Pahaliah &amp; Fils se situe en zone de vigilance. L'exposition des employés au burnout est significative et nécessite un suivi actif."
     else:                   j_statut, j_couleur, j_icone, j_msg = "Critique",  "#dc2626", '<i class="fas fa-radiation-alt"></i>', f"L'entreprise Pahaliah &amp; Fils se situe en zone critique. L'exposition des employés au burnout est élevée et requiert des actions immédiates pour protéger la santé des employés."
 
     col_j, col_dim = st.columns([1, 1])
@@ -625,55 +561,92 @@ with onglet2:
             unsafe_allow_html=True
         )
 
-        ee_m = df['ee_score'].mean()
-        dp_m = df['dp_score'].mean()
-        pa_m = df['pa_score'].mean()
-        nb_ee_h = int((df['ee_categorie']=='Élevé').sum())
-        nb_dp_h = int((df['dp_categorie']=='Élevé').sum())
-        nb_pa_f = int((df['pa_categorie']=='Faible').sum())
-        pct_ee_h = nb_ee_h / total_analyses * 100
-        pct_dp_h = nb_dp_h / total_analyses * 100
-        pct_pa_f = nb_pa_f / total_analyses * 100
+        # ── Classifications correctes ──────────────────────────
+        def cat_ee_new(s):
+            return 'Faible' if s <= 16 else ('Modéré' if s <= 26 else 'Élevé')
+        def cat_dp_new(s):
+            return 'Faible' if s <= 6  else ('Modéré' if s <= 12 else 'Élevé')
+        def cat_pa_new(s):
+            return 'Faible' if s <= 31 else ('Modéré' if s <= 38 else 'Élevé')
 
-        def niv_col2(val, low, high, reverse=False):
-            if not reverse:
-                return ("Faible","#16a34a") if val<=low else ("Modéré","#d97706") if val<=high else ("Élevé","#dc2626")
-            return ("Élevé","#16a34a") if val>=high else ("Modéré","#d97706") if val>=low else ("Faible","#dc2626")
+        df['ee_cat2'] = df['ee_score'].apply(cat_ee_new)
+        df['dp_cat2'] = df['dp_score'].apply(cat_dp_new)
+        df['pa_cat2'] = df['pa_score'].apply(cat_pa_new)
 
-        ee_n, ee_c = niv_col2(ee_m, 16, 26)
-        dp_n, dp_c = niv_col2(dp_m, 6,  12)
-        pa_n, pa_c = niv_col2(pa_m, 32, 39, reverse=True)
+        def get_props(col):
+            vc = df[col].value_counts()
+            n  = len(df)
+            f  = vc.get('Faible', 0);  pf = f / n * 100
+            m  = vc.get('Modéré', 0);  pm = m / n * 100
+            e  = vc.get('Élevé',  0);  pe = e / n * 100
+            return (int(f), round(pf,1)), (int(m), round(pm,1)), (int(e), round(pe,1))
 
-        def draw_dim(title, val, max_val, color, niv, warn_msg):
-            pct_b = min(val/max_val*100, 100)
-            return (
-                f'<div style="background:white;padding:14px 16px;border-radius:10px;'
-                f'margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,0.07);border:1px solid #e8edf5;">'
-                f'<div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:6px;">'
-                f'{title} : {val:.1f} / {max_val}</div>'
-                f'<div style="background:#e2e8f0;height:7px;border-radius:4px;width:100%;">'
-                f'<div style="background:{color};height:7px;border-radius:4px;width:{pct_b:.1f}%;"></div></div>'
-                f'<div style="margin-top:5px;font-size:11px;color:#1e293b;">'
-                f'<span style="display:inline-block;width:8px;height:8px;background:{color};'
-                f'border-radius:50%;margin-right:5px;"></span>Niveau : <b>{niv}</b></div>'
-                f'<div style="margin-top:6px;font-size:11px;color:#1e40af;font-weight:600;'
-                f'background:#eff6ff;padding:6px 10px;border-radius:6px;border-left:3px solid #3b82f6;">'
-                f'<i class="fas fa-info-circle" style="margin-right:5px;color:#3b82f6;"></i>'
-                f'{warn_msg}</div>'
+        ee_f, ee_m2, ee_e = get_props('ee_cat2')
+        dp_f, dp_m2, dp_e = get_props('dp_cat2')
+        pa_f, pa_m2, pa_e = get_props('pa_cat2')
+
+        ee_moy = df['ee_score'].mean()
+        dp_moy = df['dp_score'].mean()
+        pa_moy = df['pa_score'].mean()
+
+        def get_niv_color(niv):
+            return '#16a34a' if niv == 'Faible' else '#d97706' if niv == 'Modéré' else '#dc2626'
+
+        def draw_dim_new(title, n_f, pf, n_m, pm, n_e, pe, score_moy, niv_moy):
+            niv_color = get_niv_color(niv_moy)
+
+            def segment(pct, bg, label, n):
+                if pct < 3:
+                    return f'<div style="width:{pct:.1f}%;background:{bg};min-height:36px;"></div>'
+                return (
+                    f'<div style="width:{pct:.1f}%;background:{bg};min-height:36px;'
+                    f'display:flex;flex-direction:column;align-items:center;justify-content:center;">'
+                    f'<span style="font-size:12px;font-weight:700;color:white;line-height:1.3;">{pct:.1f}%</span>'
+                    f'<span style="font-size:10px;color:rgba(255,255,255,0.85);">{label} ({n})</span>'
+                    f'</div>'
+                )
+
+            bar = (
+                f'<div style="display:flex;border-radius:7px;overflow:hidden;margin:10px 0 14px;">'
+                + segment(pf, '#4ade80' if False else '#16a34a', 'Faible', n_f)
+                + segment(pm, '#d97706', 'Modéré', n_m)
+                + segment(pe, '#dc2626', 'Élevé',  n_e)
+                + '</div>'
+            )
+
+            msg = (
+                f'<div style="font-size:12px;color:#64748b;padding:8px 10px;'
+                f'background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0;">'
+                f'Score moyen de l\'entreprise : <b style="color:#1e293b;">{score_moy:.1f}</b>'
+                f' → niveau <b style="color:{niv_color};">{niv_moy}</b>'
                 f'</div>'
             )
 
-        st.markdown(draw_dim(
-            "Épuisement Émotionnel", ee_m, 54, ee_c, ee_n,
-            f"{pct_ee_h:.1f}% des employés ({nb_ee_h} personnes) présentent un score d'Épuisement Émotionnel élevé"
+            return (
+                f'<div style="background:white;padding:14px 16px;border-radius:10px;'
+                f'margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);border:1px solid #e8edf5;">'
+                f'<div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:4px;">{title}</div>'
+                f'{bar}'
+                f'{msg}'
+                f'</div>'
+            )
+
+        st.markdown(draw_dim_new(
+            "Épuisement Émotionnel",
+            ee_f[0], ee_f[1], ee_m2[0], ee_m2[1], ee_e[0], ee_e[1],
+            ee_moy, cat_ee_new(ee_moy)
         ), unsafe_allow_html=True)
-        st.markdown(draw_dim(
-            "Dépersonnalisation", dp_m, 30, dp_c, dp_n,
-            f"{pct_dp_h:.1f}% des employés ({nb_dp_h} personnes) présentent un score de Dépersonnalisation élevé"
+
+        st.markdown(draw_dim_new(
+            "Dépersonnalisation",
+            dp_f[0], dp_f[1], dp_m2[0], dp_m2[1], dp_e[0], dp_e[1],
+            dp_moy, cat_dp_new(dp_moy)
         ), unsafe_allow_html=True)
-        st.markdown(draw_dim(
-            "Accomplissement Personnel", pa_m, 48, pa_c, pa_n,
-            f"{pct_pa_f:.1f}% des employés ({nb_pa_f} personnes) présentent un score d'Accomplissement Personnel faible"
+
+        st.markdown(draw_dim_new(
+            "Accomplissement Personnel",
+            pa_f[0], pa_f[1], pa_m2[0], pa_m2[1], pa_e[0], pa_e[1],
+            pa_moy, cat_pa_new(pa_moy)
         ), unsafe_allow_html=True)
 
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
@@ -783,7 +756,7 @@ with onglet2:
             ax2.set_xlabel('Pourcentage (%)', fontsize=13, fontweight='bold', color='#1e293b')
             ax2.set_ylabel(sel_c_label, fontsize=13, fontweight='bold', color='#1e293b')
             ax2.set_title(
-                f"Distribution du Burnout des Employés de l'Entreprise Pahaliah & Fils\nselon : {sel_c_label}",
+                f"Répartition du Burnout des Employés de l'Entreprise Pahaliah & Fils\nselon : {sel_c_label}",
                 fontsize=15, fontweight='bold', pad=20, color='#1e293b')
             ax2.legend(title='Niveau Burnout', loc='upper center',
                        bbox_to_anchor=(0.5,-0.12), ncol=3, frameon=False, fontsize=11)
