@@ -771,11 +771,14 @@ def main():
         for s in score_cols
     }
 
+    available_questions = list(question_map.keys())
+    score_cols = [s for s in SCORE_GROUPS if s in df.columns]
+    socio_cols = [c for c in SOCIO_CANDIDATES if c in df.columns]
+
     # ═════════════════════════════════════════════════════════════════════════
     # ONGLETS
     # ═════════════════════════════════════════════════════════════════════════
-    tab1, tab2 = st.tabs(["Vue d'ensemble", "Analyse détaillée"])
-
+    tab1, tab2, tab3 = st.tabs(["Vue d'ensemble", "Analyses détaillées", "Analyse finales"])
     # ─────────────────────────────────────────────────────────────────────────
     # ONGLET 1 — VUE D'ENSEMBLE
     # ─────────────────────────────────────────────────────────────────────────
@@ -924,17 +927,20 @@ def main():
                 """, unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-        # ── ANALYSES UNIVARIÉES ──────────────────────────────────────────────
+                # ── ANALYSES UNIVARIÉES ──────────────────────────────────────────────
         sec_title("Analyse univariée — variables sociodémographiques")
+
         if not socio_cols:
             st.warning("Aucune variable sociodémographique reconnue dans le fichier.")
         else:
-            u1, u2 = st.columns([3, 7])
-            with u1:
-                sel_uni = st.selectbox("Variable à analyser", socio_cols, key="uni_var")
-            with u2:
-                pass
-            st.plotly_chart(bar_univarie(df_f[sel_uni].astype(str), sel_uni), use_container_width=True)
+            # Sélecteur de variable
+            sel_uni = st.selectbox("Variable à analyser", socio_cols, key="uni_var")
+
+            # Graphique
+            st.plotly_chart(
+                bar_univarie(df_f[sel_uni].astype(str), sel_uni),
+                use_container_width=True
+            )
 
             # Tableau de fréquences
             with st.expander("Tableau de fréquences", expanded=False):
@@ -980,5 +986,34 @@ def main():
                 ct = ct.sort_values("Score moyen", ascending=False)
                 st.dataframe(ct, use_container_width=True, hide_index=True)
 
+                ####################### Onglet : Analyse finale ########################
+        with tab3: 
+            st.header("Analyse finale")
+            st.write("Résumé global, jauge Score Global")
+
+            # --- Score final normalisé ---
+            df["Score_final_normalise"] = (
+                df[list(question_map.values())]
+                .apply(pd.to_numeric, errors="coerce")
+                .apply(lambda x: ((x - 1) / 3) * 100)
+                .mean(axis=1)
+            )
+
+            # Classification Bon/Mauvais
+            df["Categorie_Global"] = np.where(df["Score_final_normalise"] < 50, "Mauvais", "Bon")
+
+            # --- Graphique Score Global ---
+            counts_global = df["Categorie_Global"].value_counts()
+            fig_global = px.pie(
+                names=counts_global.index,
+                values=counts_global.values,
+                title="Répartition des participants selon le Score final normalisé",
+                color=counts_global.index,
+                color_discrete_map={"Mauvais": "#8B0000", "Bon": "#006400"}
+            )
+            fig_global.update_traces(textinfo="percent+label")
+            st.plotly_chart(fig_global, use_container_width=True, key="fig_global_tab3")
+
+            
 if __name__ == "__main__":
     main()
