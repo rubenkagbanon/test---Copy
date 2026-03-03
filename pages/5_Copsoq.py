@@ -1929,131 +1929,64 @@ with tab_generales:
         else:
             st.info("Données insuffisantes pour le radar domaines.")
 
-    with radar_col2:
-        # Radar sous-domaines avec sélecteur domaine
-        subdomain_stats = zscore_data.get("subdomains", {})
-        selected_radar_domain = st.selectbox(
-            "Sélectionner un domaine RPS",
-            options=list(_RPS_DOMAIN_SUBDOMAINS.keys()),
-            key="radar_subdomain_selector",
+with radar_col2:
+    # Radar sous-domaines avec sélecteur domaine
+    subdomain_stats = zscore_data.get("subdomains", {})
+    selected_radar_domain = st.selectbox(
+        "Sélectionner un domaine RPS",
+        options=list(_RPS_DOMAIN_SUBDOMAINS.keys()),
+        key="radar_subdomain_selector",
+    )
+    sub_labels_for_domain = _RPS_DOMAIN_SUBDOMAINS.get(selected_radar_domain, [])
+    sub_risk_vals = []
+    sub_short_labels = []
+    sub_full_labels = []
+    for s in sub_labels_for_domain:
+        if s in subdomain_stats:
+            sub_risk_vals.append(subdomain_stats[s]["mean_risk"])
+            short = s if len(s) <= 20 else s[:18] + "…"
+            sub_short_labels.append(short)
+            sub_full_labels.append(s)
+
+    if sub_risk_vals and len(sub_risk_vals) >= 3:
+        fig_radar_sub = go.Figure()
+        
+        # Add green fill for the 0-30% area
+        fig_radar_sub.add_trace(go.Scatterpolar(
+            r=[30] * (len(sub_short_labels) + 1),  # Constant 30% line
+            theta=sub_short_labels + [sub_short_labels[0]],
+            fill="toself",
+            fillcolor="rgba(74,222,128,0.3)",  # Green with transparency
+            line=dict(color="rgba(74,222,128,0)", width=0),  # No line
+            name="Zone favorable (<30%)",
+            hoverinfo="skip",  # Don't show in hover
+        ))
+        
+        # Main data trace
+        fig_radar_sub.add_trace(go.Scatterpolar(
+            r=sub_risk_vals + [sub_risk_vals[0]],
+            theta=sub_short_labels + [sub_short_labels[0]],
+            fill="toself",
+            fillcolor="rgba(251,146,60,0.18)",
+            line=dict(color="#FB923C", width=2.5),
+            name="Score risque sous-domaine",
+            hovertemplate="<b>%{theta}</b><br>Score risque: %{r:.1f}/100<extra></extra>",
+        ))
+        
+        # The reference line (Moy. entreprise) has been removed
+        
+        fig_radar_sub.update_layout(
+            polar=dict(
+                radialaxis=dict(visible=True, range=[0, 100], tickfont=dict(size=9), tickvals=[0, 25, 50, 75, 100]),
+                angularaxis=dict(tickfont=dict(size=9)),
+            ),
+            showlegend=True,
+            legend=dict(font=dict(size=9), orientation="h", y=-0.08),
+            title=dict(text=f"Sous-domaines — {selected_radar_domain}", font=dict(size=13), x=0.5),
+            height=360,
+            margin=dict(l=50, r=50, t=50, b=40),
         )
-        sub_labels_for_domain = _RPS_DOMAIN_SUBDOMAINS.get(selected_radar_domain, [])
-        sub_risk_vals = []
-        sub_short_labels = []
-        sub_full_labels = []
-        for s in sub_labels_for_domain:
-            if s in subdomain_stats:
-                sub_risk_vals.append(subdomain_stats[s]["mean_risk"])
-                short = s if len(s) <= 20 else s[:18] + "…"
-                sub_short_labels.append(short)
-                sub_full_labels.append(s)
-
-        if sub_risk_vals and len(sub_risk_vals) >= 3:
-            fig_radar_sub = go.Figure()
-            fig_radar_sub.add_trace(go.Scatterpolar(
-                r=sub_risk_vals + [sub_risk_vals[0]],
-                theta=sub_short_labels + [sub_short_labels[0]],
-                fill="toself",
-                fillcolor="rgba(251,146,60,0.18)",
-                line=dict(color="#FB923C", width=2.5),
-                name="Score risque sous-domaine",
-                hovertemplate="<b>%{theta}</b><br>Score risque: %{r:.1f}/100<extra></extra>",
-            ))
-            ref_val = zscore_data.get("mu_global", 50)
-            fig_radar_sub.add_trace(go.Scatterpolar(
-                r=[ref_val] * (len(sub_short_labels) + 1),
-                theta=sub_short_labels + [sub_short_labels[0]],
-                mode="lines",
-                line=dict(color="#147089", width=1.5, dash="dot"),
-                name=f"Moy. entreprise ({ref_val:.1f})",
-            ))
-            fig_radar_sub.update_layout(
-                polar=dict(
-                    radialaxis=dict(visible=True, range=[0, 100], tickfont=dict(size=9), tickvals=[0, 25, 50, 75, 100]),
-                    angularaxis=dict(tickfont=dict(size=9)),
-                ),
-                showlegend=True,
-                legend=dict(font=dict(size=9), orientation="h", y=-0.08),
-                title=dict(text=f"Sous-domaines — {selected_radar_domain}", font=dict(size=13), x=0.5),
-                height=360,
-                margin=dict(l=50, r=50, t=50, b=40),
-            )
-            st.plotly_chart(fig_radar_sub, use_container_width=True)
-
-            # --- Interprétation sous-domaines ---
-            # Score global du domaine sélectionné
-            domain_risk_selected = zscore_data.get("domains", {}).get(selected_radar_domain, {}).get("mean_risk", None)
-            if domain_risk_selected is not None:
-                d_ico, d_lbl, d_tc, d_bg, d_bc = _risk_badge(domain_risk_selected)
-                st.markdown(
-                    f'<div style="background:{d_bg};border:1px solid {d_bc};border-radius:10px;padding:8px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">'
-                    f'<span style="font-size:20px;">{d_ico}</span>'
-                    f'<div><p style="margin:0;font-size:12px;color:{d_tc};font-weight:700;">Domaine sélectionné : {selected_radar_domain}</p>'
-                    f'<p style="margin:0;font-size:13px;color:{d_tc};font-weight:800;">Score risque global : {domain_risk_selected:.1f}/100 — {d_lbl}</p></div>'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
-
-            # Tableau d'interprétation par sous-domaine
-            st.markdown(
-                '<p style="font-size:12px;font-weight:700;color:#374151;margin:4px 0;text-transform:uppercase;letter-spacing:.04em;">🔍 Détail des sous-domaines</p>',
-                unsafe_allow_html=True,
-            )
-            sub_interp_html = ""
-            for full_lbl, risk_val in zip(sub_full_labels, sub_risk_vals):
-                z_val = subdomain_stats.get(full_lbl, {}).get("z_score", 0.0)
-                alert = subdomain_stats.get(full_lbl, {}).get("alert_level", "ok")
-                ico, lbl, tc, bg, bc = _risk_badge(risk_val)
-
-                z_tag = ""
-                if alert == "critique":
-                    z_tag = f'<span style="background:#FEE2E2;color:#991B1B;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;">Z={z_val:+.2f} CRITIQUE</span>'
-                elif alert == "vigilance":
-                    z_tag = f'<span style="background:#FED7AA;color:#C05600;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;">Z={z_val:+.2f} VIGILANCE</span>'
-                else:
-                    z_tag = f'<span style="background:#F1F5F9;color:#6B7280;border-radius:4px;padding:1px 6px;font-size:10px;">Z={z_val:+.2f}</span>'
-
-                sub_interp_html += (
-                    f'<div style="background:{bg};border-left:3px solid {bc};border-radius:6px;'
-                    f'padding:6px 12px;margin-bottom:5px;display:flex;align-items:center;justify-content:space-between;">'
-                    f'<div><p style="margin:0;font-size:12px;font-weight:600;color:{tc};">{ico} {full_lbl}</p></div>'
-                    f'<div style="display:flex;align-items:center;gap:8px;">'
-                    f'{z_tag}'
-                    f'<span style="font-weight:800;font-size:13px;color:{tc};">{risk_val:.1f}</span>'
-                    f'</div></div>'
-                )
-
-            # Résumé texte
-            worst_sub = sub_full_labels[int(np.argmax(sub_risk_vals))] if sub_risk_vals else "—"
-            best_sub = sub_full_labels[int(np.argmin(sub_risk_vals))] if sub_risk_vals else "—"
-            worst_sub_val = max(sub_risk_vals) if sub_risk_vals else 0
-            best_sub_val = min(sub_risk_vals) if sub_risk_vals else 0
-            above_ref = [sub_full_labels[i] for i, v in enumerate(sub_risk_vals) if v > ref_val]
-
-            sub_interp_html += (
-                f'<div style="background:#F1F5F9;border-radius:8px;padding:8px 12px;margin-top:6px;">'
-                f'<p style="margin:0 0 3px;font-size:12px;font-weight:700;color:#1E3A5F;">📌 Résumé</p>'
-                f'<p style="margin:1px 0;font-size:11px;color:#374151;">🔴 <b>Point de vigilance :</b> {worst_sub} ({worst_sub_val:.1f}/100)</p>'
-                f'<p style="margin:1px 0;font-size:11px;color:#374151;">🟢 <b>Point fort :</b> {best_sub} ({best_sub_val:.1f}/100)</p>'
-            )
-            if above_ref:
-                sub_interp_html += f'<p style="margin:1px 0;font-size:11px;color:#374151;">📊 <b>{len(above_ref)} sous-domaine(s)</b> au-dessus de la moyenne entreprise ({ref_val:.1f}) : {", ".join(above_ref)}</p>'
-            sub_interp_html += '</div>'
-
-            st.markdown(sub_interp_html, unsafe_allow_html=True)
-
-        elif sub_risk_vals:
-            st.info("Ce domaine a moins de 3 sous-domaines disponibles pour le radar. Affichage en barres :")
-            fig_bar = px.bar(
-                x=sub_short_labels, y=sub_risk_vals,
-                labels={"x": "Sous-domaine", "y": "Score risque (0-100)"},
-                color=sub_risk_vals, color_continuous_scale=["#4ADE80", "#FACC15", "#FB923C", "#EF4444"],
-                range_color=[0, 100],
-            )
-            fig_bar.update_layout(height=320, showlegend=False, coloraxis_showscale=False)
-            st.plotly_chart(fig_bar, use_container_width=True)
-        else:
-            st.info("Données insuffisantes pour ce domaine.")
+        st.plotly_chart(fig_radar_sub, use_container_width=True)
 
 with tab_analyse_simple:
     st.subheader("Statistiques univariees")
