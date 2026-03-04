@@ -680,10 +680,15 @@ def build_general_indicators(df: pd.DataFrame) -> dict:
         _find_closest_column(cols, "Pratique reguliere sport")
         or _find_by_patterns(cols, [r"pratique.*sport", r"\bsport\b"])
     )
+    maladie_col = (
+        _find_closest_column(cols, "Maladie chronique")
+        or _find_by_patterns(cols, [r"maladie.*chron", r"chron.*maladie", r"hta", r"diabet"])
+    )
 
-    alcool_series = work_df[alcool_col] if alcool_col is not None else pd.Series(dtype="object")
-    tabac_series = work_df[tabac_col] if tabac_col is not None else pd.Series(dtype="object")
-    sport_series = work_df[sport_col] if sport_col is not None else pd.Series(dtype="object")
+    alcool_series  = work_df[alcool_col]  if alcool_col  is not None else pd.Series(dtype="object")
+    tabac_series   = work_df[tabac_col]   if tabac_col   is not None else pd.Series(dtype="object")
+    sport_series   = work_df[sport_col]   if sport_col   is not None else pd.Series(dtype="object")
+    maladie_series = work_df[maladie_col] if maladie_col is not None else pd.Series(dtype="object")
 
     imc_distribution = (
         work_df["Categorie IMC"]
@@ -693,16 +698,60 @@ def build_general_indicators(df: pd.DataFrame) -> dict:
     )
     imc_distribution["Pourcentage"] = (imc_distribution["Effectif"] / total * 100).round(1)
 
+    # ── Score Risque Cardio-Vasculaire ────────────────────────────────────────
+    # Méthode : score moyen entreprise pondéré par le % d'exposés × poids du facteur
+    # IMC : Surpoids→1, Obésité→2 | Tabac : Oui→2 | Alcool : Oui→1
+    # Maladie chronique : Oui→2 | Sédentarité (pas de sport) : Oui→1
+    # Score max = 8 ; seuils : 0–1.5 Faible | 1.6–3 Modéré | >3 Élevé
+    def _pct_imc_risk(imc_cat_series):
+        """% surpoids (score 1) et % obèse (score 2) dans la série Categorie IMC."""
+        cat_str = imc_cat_series.astype(str).str.lower().str.strip()
+        n = len(cat_str.dropna())
+        if n == 0:
+            return 0.0, 0.0
+        pct_surpoids = float((cat_str == "surpoids").sum()) / total
+        pct_obese    = float((cat_str.isin(["obésité", "obesite", "obese", "obésité"])).sum()) / total
+        return pct_surpoids, pct_obese
+
+    pct_surpoids, pct_obese = _pct_imc_risk(work_df["Categorie IMC"])
+    pct_fumeur    = _yes_rate(tabac_series)   / 100
+    pct_alcool    = _yes_rate(alcool_series)  / 100
+    pct_maladie   = _yes_rate(maladie_series) / 100
+    pct_sedentaire = (1 - _yes_rate(sport_series) / 100) if not sport_series.empty else 0.0
+
+    score_cardio = (
+        pct_surpoids  * 1 +
+        pct_obese     * 2 +
+        pct_fumeur    * 2 +
+        pct_alcool    * 1 +
+        pct_maladie   * 2 +
+        pct_sedentaire * 1
+    )
+    score_cardio = round(score_cardio, 2)
+
+    if score_cardio <= 1.5:
+        niveau_cardio = "Faible"
+        couleur_cardio = "#16a34a"   # vert
+    elif score_cardio <= 3.0:
+        niveau_cardio = "Modéré"
+        couleur_cardio = "#d97706"   # orange
+    else:
+        niveau_cardio = "Élevé"
+        couleur_cardio = "#dc2626"   # rouge
+
     return {
-        "total_effectif": total,
-        "nombre_hommes": nb_hommes,
-        "nombre_femmes": nb_femmes,
-        "age_moyen": age_moyen,
-        "taux_alcool": _yes_rate(alcool_series),
-        "taux_fumeur": _yes_rate(tabac_series),
-        "taux_sport": _yes_rate(sport_series),
+        "total_effectif":      total,
+        "nombre_hommes":       nb_hommes,
+        "nombre_femmes":       nb_femmes,
+        "age_moyen":           age_moyen,
+        "taux_alcool":         _yes_rate(alcool_series),
+        "taux_fumeur":         _yes_rate(tabac_series),
+        "taux_sport":          _yes_rate(sport_series),
         "situation_matrimoniale": situation,
-        "imc_distribution": imc_distribution,
+        "imc_distribution":    imc_distribution,
+        "score_cardio":        score_cardio,
+        "niveau_cardio":       niveau_cardio,
+        "couleur_cardio":      couleur_cardio,
     }
 
 
@@ -1570,20 +1619,35 @@ with tab_generales:
         top_situation = str(kpi["situation_matrimoniale"].iloc[0]["Situation matrimoniale"])
 
     effectif_img_b64 = image_as_base64("effectif.png")
-    homme_img_b64 = image_as_base64("homme.png")
-    femme_img_b64 = image_as_base64("femme.png")
-    age_img_b64 = image_as_base64("age.png")
-    fume_img_b64 = image_as_base64("fume.png")
-    alcool_img_b64 = image_as_base64("alcool.png")
-    sport_img_b64 = image_as_base64("sport.png")
-    couple_img_b64 = image_as_base64("couple.png")
+    homme_img_b64   = image_as_base64("homme.png")
+    femme_img_b64   = image_as_base64("femme.png")
+    age_img_b64     = image_as_base64("age.png")
+    fume_img_b64    = image_as_base64("fume.png")
+    alcool_img_b64  = image_as_base64("alcool.png")
+    couple_img_b64  = image_as_base64("couple.png")
 
     # Calculer les pourcentages pour hommes et femmes
-    total_effectif = kpi['total_effectif']
+    total_effectif    = kpi['total_effectif']
     pourcentage_hommes = (kpi['nombre_hommes'] / total_effectif * 100) if total_effectif > 0 else 0
     pourcentage_femmes = (kpi['nombre_femmes'] / total_effectif * 100) if total_effectif > 0 else 0
-    
-    
+
+    score_cardio   = kpi.get("score_cardio",   0.0)
+    niveau_cardio  = kpi.get("niveau_cardio",  "N/A")
+    couleur_cardio = kpi.get("couleur_cardio", "#64748b")
+
+    # Card Risque Cardio-Vasculaire (HTML enrichi avec couleur dynamique)
+    cardio_value_html = (
+        f'<span style="font-size:1.35rem;font-weight:700;color:{couleur_cardio};">'
+        f'{score_cardio:.2f} </span>'
+        f'<br><span style="font-size:0.78rem;font-weight:700;color:{couleur_cardio};'
+        f'text-transform:uppercase;letter-spacing:0.05em;">{niveau_cardio}</span>'
+    )
+    cardio_icon = (
+        "🟢" if niveau_cardio == "Faible"
+        else "🟠" if niveau_cardio == "Modéré"
+        else "🔴"
+    )
+
     cards = [
         ("Nombre de Repondant", f"{total_effectif}", "&#128101;"),
         (
@@ -1612,9 +1676,9 @@ with tab_generales:
             f'<img class="card-footer-image" src="data:image/png;base64,{fume_img_b64}" alt="fumeur" />',
         ),
         (
-            "Pratique sport",
-            f'<span class="rps-score-value" data-rps-score="true" data-rps-target="{kpi["taux_sport"]}" data-rps-decimals="1" data-rps-suffix="%" data-rps-final="{kpi["taux_sport"]:.1f}%">0.0%</span>',
-            f'<img class="card-footer-image" src="data:image/png;base64,{sport_img_b64}" alt="sport" />',
+            "Risque Cardio-Vasculaire",
+            cardio_value_html,
+            cardio_icon,
         ),
         (
             "Situation matrimoniale",
@@ -1632,11 +1696,10 @@ with tab_generales:
             "Nombre de Femmes",
             "Taux alcool",
             "Taux fumeur",
-            "Pratique sport",
         }
         value_html = f'<p class="card-value kpi-drop-fade" style="animation-delay: {delay_ms}ms;">{value}</p>'
         if label in anim_labels:
-            is_rate = label in {"Taux alcool", "Taux fumeur", "Pratique sport"}
+            is_rate = label in {"Taux alcool", "Taux fumeur"}
             decimals = 1 if is_rate else 0
             suffix = "%" if is_rate else ""
             try:
@@ -1650,6 +1713,9 @@ with tab_generales:
                 )
             except Exception:
                 pass
+        # Card Risque Cardio-Vasculaire : value est déjà du HTML coloré
+        elif label == "Risque Cardio-Vasculaire":
+            value_html = f'<p class="card-value kpi-drop-fade" style="animation-delay: {delay_ms}ms;line-height:1.4;">{value}</p>'
         if index == 0 and effectif_img_b64:
             cards_html += (
                 '<div class="card-container">'
