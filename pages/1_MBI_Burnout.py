@@ -82,15 +82,258 @@ st.markdown(
 # ════════════════════════════════════════════════════════════
 # SESSION STATE
 # ════════════════════════════════════════════════════════════
-if 'mbi_df'       not in st.session_state: st.session_state['mbi_df']       = None
-if 'mbi_nom'      not in st.session_state: st.session_state['mbi_nom']      = ''
-if 'mbi_effectif' not in st.session_state: st.session_state['mbi_effectif'] = None
+if 'mbi_df'        not in st.session_state: st.session_state['mbi_df']        = None
+if 'mbi_nom'       not in st.session_state: st.session_state['mbi_nom']       = ''
+if 'mbi_effectif'  not in st.session_state: st.session_state['mbi_effectif']  = None
+if 'mbi_clean_log' not in st.session_state: st.session_state['mbi_clean_log'] = ''
+if 'mbi_matched_q' not in st.session_state: st.session_state['mbi_matched_q'] = 0
 
 MBI_COLS = ['mbi_q1','mbi_q2','mbi_q3','mbi_q4','mbi_q5','mbi_q6','mbi_q7',
             'mbi_q8','mbi_q9','mbi_q10','mbi_q11','mbi_q12','mbi_q13','mbi_q14',
             'mbi_q15','mbi_q16','mbi_q17','mbi_q18','mbi_q19','mbi_q20','mbi_q21','mbi_q22']
 
 SEUIL_PCT = 5.0
+
+# ════════════════════════════════════════════════════════════
+# DICTIONNAIRE FUZZY — textes officiels des 22 questions MBI
+# (utilisé pour renommer automatiquement des colonnes dont
+#  l'intitulé ressemble à la question officielle)
+# ════════════════════════════════════════════════════════════
+MBI_QUESTION_TEXTS = {
+    'mbi_q1':  "je me sens emotionnellement vide par mon travail",
+    'mbi_q2':  "je me sens a bout a la fin de ma journee de travail",
+    'mbi_q3':  "je me sens fatigue lorsque je me leve le matin et que j ai a affronter une autre journee de travail",
+    'mbi_q4':  "je peux comprendre facilement ce que mes collaborateurs collegues ou clients ressentent",
+    'mbi_q5':  "je sens que je m occupe de certains collaborateurs collegues ou clients de facon impersonnelle comme s ils etaient des objets",
+    'mbi_q6':  "travailler avec des gens tout au long de la journee me demande beaucoup d efforts",
+    'mbi_q7':  "je m occupe tres efficacement des problemes de mes collaborateurs collegues ou clients",
+    'mbi_q8':  "je sens que je craque a cause de mon travail",
+    'mbi_q9':  "j ai l impression a travers mon travail d avoir une influence positive sur les gens",
+    'mbi_q10': "je suis devenue plus insensible aux gens depuis que j ai ce travail",
+    'mbi_q11': "je crains que ce travail ne m endurcisse emotionnellement",
+    'mbi_q12': "je me sens plein d energie",
+    'mbi_q13': "je me sens frustre par mon travail",
+    'mbi_q14': "je sens que je travaille trop dur dans mon boulot",
+    'mbi_q15': "je ne me soucie pas vraiment de ce qui arrive a certains de mes collaborateurs collegues ou clients",
+    'mbi_q16': "travailler en contact direct avec les gens me stresse trop",
+    'mbi_q17': "j arrive facilement a creer une atmosphere detendue avec mes collaborateurs collegues ou clients",
+    'mbi_q18': "je me sens ragaillardi lorsque dans mon travail j ai ete proche de collaborateurs collegues ou clients",
+    'mbi_q19': "j ai accompli beaucoup de choses qui en valent la peine dans ce travail",
+    'mbi_q20': "je me sens au bout du rouleau",
+    'mbi_q21': "dans mon travail je traite les problemes emotionnels tres calmement",
+    'mbi_q22': "j ai l impression que certains de mes collaborateurs collegues ou clients me rendent responsable de certains de leurs problemes",
+}
+
+# ════════════════════════════════════════════════════════════
+# NORMALISATION TEXTE (pour le fuzzy match)
+# ════════════════════════════════════════════════════════════
+import re
+import unicodedata
+
+def _normalize_text(text: str) -> str:
+    """Minuscule, sans accents, ponctuation → espace, espaces multiples fusionnés."""
+    text = str(text).lower().strip()
+    text = unicodedata.normalize('NFD', text)
+    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+    text = re.sub(r'[^\w\s]', ' ', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+def _token_overlap_ratio(a: str, b: str) -> float:
+    """Ratio de Jaccard sur les tokens (mots) entre deux textes normalisés."""
+    sa = set(a.split())
+    sb = set(b.split())
+    if not sa or not sb:
+        return 0.0
+    return len(sa & sb) / len(sa | sb)
+
+# ════════════════════════════════════════════════════════════
+# FUZZY MATCH — renommage automatique des colonnes MBI
+# ════════════════════════════════════════════════════════════
+def fuzzy_rename_mbi_columns(df: pd.DataFrame,
+                              threshold: float = 0.40) -> tuple:
+    """
+    Tente de renommer les colonnes d'un DataFrame vers les noms canoniques
+    mbi_q1…mbi_q22 par similarité textuelle avec les questions officielles.
+
+    Retourne (df_renamed, log_lines, matched_count).
+    - threshold : ratio de Jaccard minimum pour accepter un match (0.40 = 40 % de tokens communs)
+    """
+    df       = df.copy()
+    logs     = []
+    renamed  = {}   # {ancien_nom: nouveau_nom}
+    used_targets = set()   # évite qu'une même cible soit assignée deux fois
+
+    # Colonnes déjà correctement nommées
+    already_ok = [c for c in MBI_COLS if c in df.columns]
+    for c in already_ok:
+        used_targets.add(c)
+        logs.append(f"✅ '{c}' déjà présente — aucun renommage nécessaire.")
+
+    # Pour chaque colonne du fichier non encore mappée
+    for col in df.columns:
+        if col in used_targets or col in MBI_COLS:
+            continue
+        col_norm = _normalize_text(col)
+        best_target = None
+        best_score  = 0.0
+        for target, ref_text in MBI_QUESTION_TEXTS.items():
+            if target in used_targets:
+                continue
+            score = _token_overlap_ratio(col_norm, ref_text)
+            if score > best_score:
+                best_score  = score
+                best_target = target
+        if best_target and best_score >= threshold:
+            renamed[col]   = best_target
+            used_targets.add(best_target)
+            logs.append(
+                f"🔄 Fuzzy match '{col}' → '{best_target}' "
+                f"(similarité Jaccard : {best_score:.2f})"
+            )
+
+    if renamed:
+        df = df.rename(columns=renamed)
+
+    # Compter les colonnes MBI trouvées après renommage
+    matched = [c for c in MBI_COLS if c in df.columns]
+    missing = [c for c in MBI_COLS if c not in df.columns]
+    if missing:
+        logs.append(f"⚠️  Questions MBI non détectées ({len(missing)}) : {', '.join(missing)}")
+    logs.append(f"📊 Questions MBI détectées : {len(matched)}/22")
+
+    return df, logs, len(matched)
+
+# ════════════════════════════════════════════════════════════
+# NETTOYAGE COMMUN — standardisation + fillna
+# ════════════════════════════════════════════════════════════
+# Colonnes socio-démographiques et modes de vie attendues dans MBI
+_SOCIO_COLS_MBI = [
+    'genre', 'age', 'anciennete', 'poids', 'taille',
+    'situation_matrimoniale', 'pratique_sport', 'consommation_alcool',
+    'tabagisme', 'maladie_chronique', 'handicap_physique', 'suivi_psychologique',
+]
+
+# Alias fréquents pour les colonnes clés (fuzzy renommage socio)
+_SOCIO_ALIASES = {
+    'genre':                   ['sexe', 'sex', 'gender', 'genre'],
+    'age':                     ['age', 'âge', 'annee_naissance'],
+    'anciennete':              ['anciennete', 'ancienneté', 'seniority', 'years_in_company'],
+    'situation_matrimoniale':  ['situation_matrimoniale', 'situation matrimoniale',
+                                'statut_marital', 'etat_civil'],
+    'pratique_sport':          ['pratique_sport', 'pratique reguliere du sport',
+                                'sport', 'activite_physique'],
+    'consommation_alcool':     ['consommation_alcool', 'consommation reguliere d alcool',
+                                'alcool', 'alcohol'],
+    'tabagisme':               ['tabagisme', 'tabac', 'fumeur', 'smoking'],
+    'maladie_chronique':       ['maladie_chronique', 'avez-vous une maladie chronique',
+                                'maladie chronique', 'chronic'],
+    'handicap_physique':       ['handicap_physique', 'avez-vous un handicap physique',
+                                'handicap'],
+    'suivi_psychologique':     ['suivi_psychologique',
+                                'avez-vous ete suivi pour un probleme psychologique',
+                                'psy', 'suivi_psy'],
+}
+
+# Valeurs binaires Oui/Non reconnues
+_OUI_VALS = {'oui', 'yes', 'o', '1', 'true', 'vrai', 'y'}
+_NON_VALS = {'non', 'no', 'n', '0', 'false', 'faux'}
+# Valeurs genre reconnues
+_HOMME_VALS = {'homme', 'h', 'm', 'male', 'masculin'}
+_FEMME_VALS = {'femme', 'f', 'female', 'féminin', 'feminin'}
+
+
+def clean_common_variables(df: pd.DataFrame) -> tuple:
+    """
+    Nettoyage et standardisation des variables communes (socio-démo + modes de vie).
+
+    Étapes :
+    1. Fuzzy renommage des colonnes socio vers les noms canoniques
+    2. Standardisation genre → 'Homme' / 'Femme'
+    3. Conversion numérique age / ancienneté / poids / taille
+    4. Standardisation binaires (Oui/Non)
+    5. fillna 'Non renseigné' sur toutes les colonnes non-MBI avec des NA restants
+
+    Retourne (df_cleaned, log_lines).
+    """
+    df   = df.copy()
+    logs = []
+
+    # ── 1. Fuzzy renommage des colonnes socio ──────────────────
+    col_norm_map = {_normalize_text(c): c for c in df.columns}
+    for canonical, aliases in _SOCIO_ALIASES.items():
+        if canonical in df.columns:
+            continue  # déjà là
+        for alias in aliases:
+            alias_n = _normalize_text(alias)
+            if alias_n in col_norm_map:
+                old = col_norm_map[alias_n]
+                if old != canonical:
+                    df  = df.rename(columns={old: canonical})
+                    logs.append(f"🔄 Colonne socio '{old}' → '{canonical}'")
+                break
+
+    # ── 2. Genre ───────────────────────────────────────────────
+    if 'genre' in df.columns:
+        before_na = df['genre'].isna().sum()
+        def _std_genre(v):
+            if pd.isna(v): return np.nan
+            vl = _normalize_text(str(v))
+            if vl in _HOMME_VALS: return 'Homme'
+            if vl in _FEMME_VALS: return 'Femme'
+            return np.nan
+        df['genre'] = df['genre'].apply(_std_genre)
+        after_na = df['genre'].isna().sum()
+        converted = before_na - after_na  if after_na < before_na else 0
+        logs.append(f"✅ Genre standardisé (Homme/Femme) — {after_na} valeurs non reconnues.")
+        if converted:
+            logs.append(f"   ↳ {converted} valeur(s) NaN récupérées.")
+
+    # ── 3. Numériques ──────────────────────────────────────────
+    for col in ['age', 'anciennete', 'poids', 'taille']:
+        if col in df.columns:
+            before = df[col].isna().sum()
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+            after   = df[col].isna().sum()
+            if after > before:
+                logs.append(f"⚠️  '{col}' : {after-before} valeur(s) non numérique(s) → NaN.")
+            else:
+                logs.append(f"✅ '{col}' converti en numérique ({before} NaN initiaux).")
+
+    # ── 4. Variables binaires Oui/Non ─────────────────────────
+    bin_cols = ['pratique_sport', 'consommation_alcool', 'tabagisme',
+                'maladie_chronique', 'handicap_physique', 'suivi_psychologique']
+    for col in bin_cols:
+        if col not in df.columns:
+            continue
+        def _std_bin(v):
+            if pd.isna(v): return np.nan
+            vl = _normalize_text(str(v))
+            if vl in _OUI_VALS: return 'Oui'
+            if vl in _NON_VALS: return 'Non'
+            return np.nan
+        df[col] = df[col].apply(_std_bin)
+        na_count = df[col].isna().sum()
+        logs.append(f"✅ '{col}' standardisé (Oui/Non) — {na_count} non reconnu(s).")
+
+    # ── 5. fillna 'Non renseigné' sur toutes les colonnes ─────
+    #    (sauf colonnes MBI numériques et colonnes purement numériques)
+    numeric_protected = set(MBI_COLS) | {'age', 'anciennete', 'poids', 'taille', 'imc',
+                                          'ee_score', 'dp_score', 'pa_score'}
+    filled_cols = []
+    for col in df.columns:
+        if col in numeric_protected:
+            continue
+        na_count = df[col].isna().sum()
+        if na_count > 0:
+            df[col] = df[col].fillna('Non renseigné')
+            filled_cols.append(f"'{col}' ({na_count} valeur(s))")
+    if filled_cols:
+        logs.append(f"🔲 fillna 'Non renseigné' appliqué sur : {', '.join(filled_cols)}")
+    else:
+        logs.append("✅ Aucun NA restant à remplir sur les colonnes catégorielles.")
+
+    return df, logs
 
 # ════════════════════════════════════════════════════════════
 # TRANCHES INTELLIGENTES
@@ -278,7 +521,7 @@ if not _data_loaded:
         eff_input = st.number_input("Effectif total", min_value=1, value=100,
                                     step=1, key="input_effectif")
     with col_file:
-        uploaded = st.file_uploader("Base de données MBI (CSV)", type=['csv'], key="upload_mbi")
+        uploaded = st.file_uploader("Base de données MBI (CSV / Excel)", type=['csv','xlsx','xls'], key="upload_mbi")
     with col_btn:
         st.markdown("<div style='height:27px'></div>", unsafe_allow_html=True)
         lancer = st.button("🚀  Lancer", use_container_width=True, key="btn_lancer")
@@ -286,23 +529,64 @@ if not _data_loaded:
     if lancer:
         errors = []
         if not nom_input.strip(): errors.append("Veuillez saisir le nom de l'entreprise.")
-        if uploaded is None:       errors.append("Veuillez importer un fichier CSV.")
+        if uploaded is None:       errors.append("Veuillez importer un fichier CSV ou Excel.")
         if errors:
             for e in errors: st.error(f"❌ {e}")
         else:
             try:
-                raw        = pd.read_csv(uploaded)
+                # ── Lecture brute (CSV ou Excel) ───────────────────────
+                ext = uploaded.name.rsplit('.', 1)[-1].lower()
+                if ext in ('xlsx', 'xls'):
+                    raw = pd.read_excel(uploaded)
+                else:
+                    try:
+                        raw = pd.read_csv(uploaded, encoding='utf-8-sig')
+                    except Exception:
+                        uploaded.seek(0)
+                        raw = pd.read_csv(uploaded, encoding='latin-1')
+
+                all_logs = []
+                all_logs.append("═══ ÉTAPE 1 : Fuzzy match des questions MBI ═══")
+
+                # ── Fuzzy match colonnes MBI ───────────────────────────
+                raw, fuzzy_logs, matched_q_count = fuzzy_rename_mbi_columns(raw)
+                all_logs.extend(fuzzy_logs)
+
+                # ── Vérification des 22 questions après fuzzy ──────────
                 manquantes = [c for c in MBI_COLS if c not in raw.columns]
                 if manquantes:
+                    # Afficher le journal même en cas d'échec
+                    cleaning_log = "\n".join(all_logs)
+                    with st.expander("📋 Journal de nettoyage automatique", expanded=True):
+                        st.text(cleaning_log)
+                        st.write(f"Questions MBI détectées automatiquement : {matched_q_count}/22")
                     st.error(
-                        f"❌ {len(manquantes)} colonne(s) MBI manquante(s) : "
-                        f"`{'`, `'.join(manquantes)}`"
+                        f"❌ {len(manquantes)} question(s) MBI introuvable(s) après fuzzy match : "
+                        f"`{'`, `'.join(manquantes)}`\n\n"
+                        f"Vérifiez que les intitulés de colonnes correspondent aux 22 questions MBI."
                     )
                 else:
-                    st.session_state['mbi_df']       = process_df(raw)
-                    st.session_state['mbi_nom']      = nom_input.strip()
-                    st.session_state['mbi_effectif'] = int(eff_input)
+                    # ── Nettoyage commun ───────────────────────────────
+                    all_logs.append("")
+                    all_logs.append("═══ ÉTAPE 2 : Nettoyage & standardisation des variables ═══")
+                    raw, clean_logs = clean_common_variables(raw)
+                    all_logs.extend(clean_logs)
+
+                    # ── Traitement MBI (scores + catégories) ───────────
+                    all_logs.append("")
+                    all_logs.append("═══ ÉTAPE 3 : Calcul des scores MBI ═══")
+                    processed = process_df(raw)
+                    all_logs.append(f"✅ Scores EE / DP / PA calculés sur {len(processed)} répondants.")
+                    all_logs.append(f"✅ Classification burnout appliquée (Pas de burnout / Pré-burnout / Burnout avéré).")
+
+                    # ── Stockage en session ────────────────────────────
+                    st.session_state['mbi_df']        = processed
+                    st.session_state['mbi_nom']       = nom_input.strip()
+                    st.session_state['mbi_effectif']  = int(eff_input)
+                    st.session_state['mbi_clean_log'] = "\n".join(all_logs)
+                    st.session_state['mbi_matched_q'] = matched_q_count
                     st.rerun()
+
             except Exception as ex:
                 st.error(f"❌ Erreur lors de la lecture du fichier : {ex}")
     st.stop()
@@ -326,10 +610,56 @@ with col_badge:
     )
 with col_reset:
     if st.button("↺ Changer", key="btn_reset", use_container_width=True):
-        st.session_state['mbi_df']       = None
-        st.session_state['mbi_nom']      = ''
-        st.session_state['mbi_effectif'] = None
+        st.session_state['mbi_df']        = None
+        st.session_state['mbi_nom']       = ''
+        st.session_state['mbi_effectif']  = None
+        st.session_state['mbi_clean_log'] = ''
+        st.session_state['mbi_matched_q'] = 0
         st.rerun()
+
+# ── Journal de nettoyage automatique ─────────────────────────
+_clean_log   = st.session_state.get('mbi_clean_log', '')
+_matched_q   = st.session_state.get('mbi_matched_q', 0)
+_log_ok      = _matched_q == 22
+_expander_icon = "✅" if _log_ok else "⚠️"
+with st.expander(
+    f"{_expander_icon} Journal de nettoyage automatique "
+    f"({'Questions MBI complètes' if _log_ok else f'{_matched_q}/22 questions détectées'})",
+    expanded=not _log_ok,
+):
+    # Compteur mis en avant
+    col_jl, col_jr = st.columns([3, 1])
+    with col_jl:
+        if _clean_log:
+            st.markdown(
+                '<div style="font-family:monospace;font-size:0.8rem;'
+                'background:#f8fafc;border-radius:6px;padding:10px 14px;'
+                'border:1px solid #e2e8f0;max-height:320px;overflow-y:auto;">'
+                + "".join(
+                    f'<div style="padding:1px 0;color:{"#16a34a" if l.startswith("✅") else "#d97706" if l.startswith("⚠️") else "#1e40af" if l.startswith("🔄") else "#475569" if l.startswith("═") else "#1e293b"}">{l}</div>'
+                    for l in _clean_log.split("\n")
+                )
+                + '</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.caption("Aucun log disponible.")
+    with col_jr:
+        q_color = "#16a34a" if _matched_q == 22 else "#d97706" if _matched_q >= 18 else "#dc2626"
+        st.markdown(
+            f'<div style="background:white;border-radius:10px;padding:16px 12px;'
+            f'text-align:center;border:1px solid #e2e8f0;'
+            f'box-shadow:0 1px 4px rgba(0,0,0,0.06);">'
+            f'<div style="font-size:11px;font-weight:700;color:#64748b;'
+            f'text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">'
+            f'Questions MBI<br>détectées</div>'
+            f'<div style="font-size:42px;font-weight:700;color:{q_color};line-height:1;">'
+            f'{_matched_q}<span style="font-size:18px;color:#94a3b8;">/22</span></div>'
+            f'<div style="margin-top:8px;font-size:11px;color:{q_color};font-weight:600;">'
+            f'{"✅ Complet" if _matched_q == 22 else "⚠️ Incomplet"}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
 # ════════════════════════════════════════════════════════════
 # CALCULS
