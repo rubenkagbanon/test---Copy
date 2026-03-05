@@ -21,7 +21,14 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
-
+# Après st.set_page_config()
+st.markdown("""
+<style>
+    [data-testid="collapsedControl"] {
+        display: block !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 # ============================================================
 # CONSTANTES
 # ============================================================
