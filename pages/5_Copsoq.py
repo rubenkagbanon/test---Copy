@@ -1547,7 +1547,7 @@ st.set_page_config(
     page_title="Tableau d'analyse COPSOQ",
     page_icon=":busts_in_silhouette:",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 load_css()

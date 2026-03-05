@@ -27,7 +27,7 @@ st.set_page_config(
     layout="wide",
     page_title="Karasek · Bien-être",
     page_icon="",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 # ── Palette ───────────────────────────────────────────────────────────────────

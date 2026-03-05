@@ -15,7 +15,7 @@ import io
 st.set_page_config(
     page_title="Tableau de Bord - Santé et Sécurité au Travail (SST)",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # ===============================
