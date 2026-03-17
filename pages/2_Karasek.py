@@ -1,17 +1,19 @@
 # =============================================================================
-# SECTION 0 — IMPORTS + CONFIG + TRADUCTIONS
+# karasek_app.py — Application Streamlit Karasek
+# Design & palette du dashboard original Wave-CI
+# Seuil théorique uniquement (point médian de l'échelle — non clinique)
 # =============================================================================
-import io
-import logging
-import re
-import textwrap
-import unicodedata
-import warnings
-from datetime import datetime
+
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+import base64
+import io
+import re
+import sys
+import unicodedata
+from difflib import SequenceMatcher
 
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -19,42 +21,32 @@ import plotly.graph_objects as go
 import seaborn as sns
 import streamlit as st
 import streamlit.components.v1 as components
-from matplotlib.colors import LinearSegmentedColormap
+import warnings
 
 warnings.filterwarnings("ignore")
 
 st.set_page_config(
-    layout="wide",
     page_title="Karasek · Bien-être",
-    page_icon="",
+    page_icon="🧠",
+    layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# ── Palette ───────────────────────────────────────────────────────────────────
-COLORS = {
-    "bg_primary":    "#F5F9FF",
-    "bg_card":       "#FFFFFF",
-    "accent_blue":   "#38A3E8",
-    "accent_orange": "#F97316",
-    "accent_green":  "#22C55E",
-    "accent_red":    "#EF4444",
-    "text_primary":  "#0F2340",
-    "text_muted":    "#6B88A8",
-    "border":        "#D6E8F7",
-}
-
+# =============================================================================
+# PALETTE & CONSTANTES
+# =============================================================================
 KARASEK_COLORS = {
     "Actif":   "#22C55E",
     "Détendu": "#38A3E8",
     "Detendu": "#38A3E8",
     "Tendu":   "#EF4444",
     "Passif":  "#94A3B8",
-    "Active":  "#22C55E",
-    "Relaxed": "#38A3E8",
-    "Tense":   "#EF4444",
-    "Passive": "#94A3B8",
 }
 
+LIKERT_MIN = 1
+LIKERT_MAX = 4
+
+# Seuils théoriques — point médian de l'échelle Likert 1-4 (non cliniques)
 THRESHOLDS = {
     "Dem_score":           22.5,
     "Lat_score":           60.0,
@@ -71,719 +63,88 @@ THRESHOLDS = {
     "adq_role_score":       5.0,
 }
 
-T = {
-    "fr": {
-        "tab1": "Vue d'ensemble",
-        "tab2": "Stress & Autonomie",
-        "app_title": "Karasek Dashboard",
-        "app_subtitle": "Analyse du bien-être au travail · Modèle de Karasek",
-        "total_staff": "Effectif total",
-        "men": "Hommes",
-        "women": "Femmes",
-        "avg_age": "Âge moyen",
-        "overweight": "Surpoids & Obésité",
-        "lifestyle_title": "Indicateurs de modes de vie",
-        "sedentarity": "Sédentarité",
-        "alcohol": "Alcool",
-        "tobacco": "Tabagisme",
-        "chronic": "Maladie chronique",
-        "explore_title": "Exploration des données démographiques",
-        "select_variable": "Variable à visualiser",
-        "cross_with": "Croiser avec (optionnel)",
-        "no_cross": "Aucun croisement",
-        "n_respondents": "N",
-        "pct": "%",
-        "stress_kpis_title": "Indicateurs clés de stress au travail",
-        "autonomy": "Autonomie décisionnelle",
-        "autonomy_sub": "Flexibilité et contrôle perçus",
-        "workload": "Charge mentale perçue",
-        "workload_sub": "Intensité de la demande psychologique",
-        "social_support": "Cohésion d'équipe",
-        "social_support_sub": "Soutien social collègues & management",
-        "mapp_title": "Grille MAPP du Stress",
-        "mapp_subtitle": "Chaque point représente un agent. Les axes délimitent les zones du quadrant karasek.",
-        "x_axis_mapp": "Latitude décisionnelle (autonomie & compétences)",
-        "y_axis_mapp": "Demande psychologique (charge mentale)",
-        "quadrant_pct_title": "Répartition par quadrant Karasek",
-        "active": "Actif",
-        "relaxed": "Détendu",
-        "tense": "Tendu",
-        "passive": "Passif",
-        "radar_title": "Satisfaction organisationnelle",
-        "radar_subtitle": "% de collaborateurs avec un niveau élevé de satisfaction par dimension",
-        "radar_ref": "Référence 50%",
-        "pct_satisfied": "Niveau élevé",
-        "recognition": "Reconnaissance",
-        "equity": "Équité de charge",
-        "culture": "Culture d'entreprise",
-        "satisfaction": "Satisfaction",
-        "resources": "Ressources & Objectifs",
-        "management_support": "Soutien management",
-        "training": "Formation",
-        "skills": "Compétences",
-        "filter_title": "Filtres",
-        "filter_direction": "Direction",
-        "filter_csp": "Catégorie socio",
-        "filter_genre": "Genre",
-        "filter_age": "Tranche d'âge",
-        "reset_btn": "↺ Réinitialiser",
-        "n_filtered": "Effectif filtré",
-        "lang_toggle": "EN",
-        "var_genre": "Genre",
-        "var_age": "Tranche d'âge",
-        "var_anciennete": "Ancienneté",
-        "var_csp": "Catégorie socioprofessionnelle",
-        "var_imc": "Catégorie IMC",
-        "var_imc_bin": "IMC (normal / surpoids)",
-        "var_direction": "Direction",
-        "var_tabac": "Tabagisme",
-        "var_alcool": "Consommation d'alcool",
-        "var_sport": "Pratique sportive",
-        "var_maladie": "Maladie chronique",
-        "cross_quadrant": "quadrant Karasek ",
-        "cross_dem": "Charge mentale",
-        "cross_lat": "Autonomie décisionnelle",
-        "cross_ss": "Soutien social",
-        "cross_rec": "Reconnaissance",
-        "cross_equ": "Équité de charge",
-        "cross_cult": "Culture d'entreprise",
-        "cross_sat": "Satisfaction au travail",
-        "cross_adq_res": "Ressources et Objectifs",
-        "cross_adq_role": "Adéquation Formation",
-        "cross_skills": "Utilisation des compétences",
-        "cross_supmgmt": "Soutien du management",
-        "high": "Élevé",
-        "low": "Faible",
-        "pct_label": "Pourcentage (%)",
-        "hover_quad": "Zone",
-        "hover_lat": "Autonomie",
-        "hover_dem": "Charge mentale",
-        "no_data": "Données insuffisantes pour ce croisement.",
-        "missing_mapp": "Colonnes manquantes pour la grille MAPP",
-        "all_option": "Tous",
-        "select_cross_stress": "Choisir un croisement",
-        "upload_csv": "Importer un fichier CSV ou Excel",
-        "upload_active": "Source active",
-    },
-    "en": {
-        "tab1": "Overview",
-        "tab2": "Stress & Autonomy",
-        "app_title": "Karasek Dashboard",
-        "app_subtitle": "Work well-being analysis · Karasek Model",
-        "total_staff": "Total Workforce",
-        "men": "Men",
-        "women": "Women",
-        "avg_age": "Average Age",
-        "overweight": "Overweight & Obese",
-        "lifestyle_title": "Lifestyle Indicators",
-        "sedentarity": "Sedentary",
-        "alcohol": "Alcohol",
-        "tobacco": "Tobacco",
-        "chronic": "Chronic Illness",
-        "explore_title": "Demographic Data Explorer",
-        "select_variable": "Choose a variable",
-        "cross_with": "Cross with (optional)",
-        "no_cross": "No cross-tabulation",
-        "n_respondents": "N",
-        "pct": "%",
-        "stress_kpis_title": "Key Workplace Stress Indicators",
-        "autonomy": "Decision-Making Autonomy",
-        "autonomy_sub": "Perceived flexibility and control",
-        "workload": "Perceived Mental Workload",
-        "workload_sub": "Intensity of psychological demand",
-        "social_support": "Team Cohesion",
-        "social_support_sub": "Social support: colleagues & management",
-        "mapp_title": "MAPP Stress Grid",
-        "mapp_subtitle": "Each point represents one employee. Axes delimit Karasek Quadrants.",
-        "x_axis_mapp": "Decision-making latitude (autonomy & skills)",
-        "y_axis_mapp": "Psychological demand (mental workload)",
-        "quadrant_pct_title": "Distribution by Karasek Quadrant",
-        "active": "Active",
-        "relaxed": "Relaxed",
-        "tense": "Tense",
-        "passive": "Passive",
-        "radar_title": "Organizational Satisfaction",
-        "radar_subtitle": "% of employees with a high satisfaction level per dimension",
-        "radar_ref": "50% reference",
-        "pct_satisfied": "High level",
-        "recognition": "Recognition",
-        "equity": "Workload Equity",
-        "culture": "Company Culture",
-        "satisfaction": "Satisfaction",
-        "resources": "Resources & Goals",
-        "management_support": "Management Support",
-        "training": "Training",
-        "skills": "Skills",
-        "filter_title": "Filters",
-        "filter_direction": "Department",
-        "filter_csp": "Professional Category",
-        "filter_genre": "Gender",
-        "filter_age": "Age Group",
-        "reset_btn": "↺ Reset",
-        "n_filtered": "Filtered workforce",
-        "lang_toggle": "FR",
-        "var_genre": "Gender",
-        "var_age": "Age Group",
-        "var_anciennete": "Seniority",
-        "var_csp": "Professional Category",
-        "var_imc": "BMI Category",
-        "var_imc_bin": "BMI (normal / overweight)",
-        "var_direction": "Department",
-        "var_tabac": "Tobacco Use",
-        "var_alcool": "Alcohol Consumption",
-        "var_sport": "Physical Activity",
-        "var_maladie": "Chronic Illness",
-        "cross_quadrant": "Karasek Quadrant ",
-        "cross_dem": "Mental Workload",
-        "cross_lat": "Decision-Making Autonomy",
-        "cross_ss": "Social Support",
-        "cross_rec": "Recognition",
-        "cross_equ": "Workload Equity",
-        "cross_cult": "Company Culture",
-        "cross_sat": "Job Satisfaction",
-        "cross_adq_res": "Resources and Objectives",
-        "cross_adq_role": "Training Alignment",
-        "cross_skills": "Skills Utilization",
-        "cross_supmgmt": "Management Support",
-        "high": "High",
-        "low": "Low",
-        "pct_label": "Percentage (%)",
-        "hover_quad": "Zone",
-        "hover_lat": "Autonomy",
-        "hover_dem": "Mental Workload",
-        "no_data": "Insufficient data for this cross-tabulation.",
-        "missing_mapp": "Missing columns for MAPP grid",
-        "all_option": "All",
-        "select_cross_stress": "Choose a cross-tabulation",
-        "upload_csv": "Upload a CSV or Excel file",
-        "upload_active": "Active source",
-    },
+RENAME_MAPPING = {
+    # ── Utilisation des compétences (comp) ──────────────────────────────────
+    "Dans mon travail, je dois apprendre des choses nouvelles":                                                              "Q1_comp",
+    "Dans mon travail j’effectue des tâches répétitives":                                               "Q2_comp",
+    "Dans mon travail j'effectue des tâches répétitives":                                                    "Q2_comp",
+    "Mon travail me demande d’être créatif":                                                                  "Q3_comp",
+    "Mon travail me demande d'être créatif":                                                                       "Q3_comp",
+    "Mon travail me demande un haut niveau de compétence":                                                              "Q4_comp",
+    "Dans mon travail, j’ai des activités variées":                                                          "Q5_comp",
+    "Dans mon travail, j'ai des activités variées":                                                               "Q5_comp",
+    "J’ai l’occasion de développer mes compétences professionnelles":                                    "Q6_comp",
+    "J'ai l'occasion de développer mes compétences professionnelles":                                              "Q6_comp",
+    # ── Autonomie décisionnelle (auto) ───────────────────────────────────────
+    "Mon travail me permet souvent de prendre des décisions moi-même":                                             "Q1_auto",
+    "Dans ma tâche, j’ai très peu de liberté pour décider comment je fais mon travail":            "Q2_auto",
+    "Dans ma tâche, j'ai très peu de liberté pour décider comment je fais mon travail":                 "Q2_auto",
+    "J’ai la possibilité d’influencer le déroulement de mon travail":                                    "Q3_auto",
+    "J'ai la possibilité d'influencer le déroulement de mon travail":                                              "Q3_auto",
+    # ── Demande psychologique (dem) ──────────────────────────────────────────
+    "Mon travail me demande de travailler très vite":                                                                   "Q1_dem",
+    "Mon travail demande de travailler intensement":                                                                          "Q2_dem",
+    "On me demande d’effectuer une quantité de travail excessive":                                                  "Q3_dem",
+    "On me demande d'effectuer une quantité de travail excessive":                                                       "Q3_dem",
+    "Je dispose du temps nécessaire pour effectuer correctement mon travail":                                            "Q4_dem",
+    "Je reçois des ordres contradictoires de la part d’autres personnes":                                          "Q5_dem",
+    "Je reçois des ordres contradictoires de la part d'autres personnes":                                                "Q5_dem",
+    "Mon travail nécessite de longues périodes de concentration intense":                                          "Q6_dem",
+    "Mes tâches sont souvent interrompues avant d’être achevées, nécessitant de les reprendre plus tard": "Q7_dem",
+    "Mes tâches sont souvent interrompues avant d'être achevées, nécessitant de les reprendre plus tard": "Q7_dem",
+    "Mon travail est « très bouscu lé » ":                                                     "Q8_dem",
+    "Mon travail est « très bouscu lé » ":                                                               "Q8_dem",
+    "Mon travail est « très bouscu »":                                                              "Q8_dem",
+    "Mon travail est « très bouscu lé »":                                                      "Q8_dem",
+    "Attendre le travail de collègues ralentit souvent mon propre travail":                                              "Q9_dem",
+    # ── Soutien hiérarchique (sup) ───────────────────────────────────────────
+    "Mon supérieur se sent concerné par le bien-être de ses subordonnés":                                "Q1_sup",
+    "Mon supérieur prête attention à ce que je dis":                                                          "Q2_sup",
+    "Mon supérieur m’aide à mener ma tâche à bien":                                                  "Q3_sup",
+    "Mon supérieur m'aide à mener ma tâche à bien":                                                       "Q3_sup",
+    "Mon supérieur réussit facilement à faire collaborer ses subordonnés":                                "Q4_sup",
+    # ── Soutien des collègues (col) ──────────────────────────────────────────
+    "Les collègues avec qui je travaille sont des gens professionnellement compétent":                             "Q1_col",
+    "Les collègues avec qui je travaille me manifestent de l’intérêt":                                   "Q2_col",
+    "Les collègues avec qui je travaille me manifestent de l'intérêt":                                        "Q2_col",
+    "Les collègues avec qui je travaille sont amicaux":                                                                  "Q3_col",
+    "Les collègues avec qui je travaille m’aident à mener les tâches à bien":                      "Q4_col",
+    "Les collègues avec qui je travaille m'aident à mener les tâches à bien":                            "Q4_col",
+    # ── Reconnaissance (rec) ────────────────────────────────────────────────
+    "On me traite injustement dans mon travail":                                                                              "Q1_rec",
+    "Ma sécurité d’emploi est menacée":                                                                   "Q2_rec",
+    "Ma sécurité d'emploi est menacée":                                                                        "Q2_rec",
+    "Ma position professionnelle actuelle correspond bien à ma formation":                                               "Q3_rec",
+    "Vu tous mes efforts, je reçois le respect et l’estime que je mérite":                                    "Q4_rec",
+    "Vu tous mes efforts, je reçois le respect et l'estime que je mérite":                                         "Q4_rec",
+    "Vu tous mes efforts, mes perspectives de promotion sont satisfaisantes":                                                  "Q5_rec",
+    "Vu tous mes efforts, mon salaire est satisfaisant":                                                                      "Q6_rec",
+    # ── Équité (equ) ────────────────────────────────────────────────────────
+    "La charge de travail est répartie équitablement dans mon équipe":                                        "Q1_equ",
+    # ── Culture (cult) ──────────────────────────────────────────────────────
+    "Je m’identifie à la culture de l’entreprise?":                                                           "Q1_cult",
+    "Je m'identifie à la culture de l'entreprise?":                                                                     "Q1_cult",
+    "Je recommanderai ma compagnie à mes connaissances à la recherche d’un emploi":                          "Q2_cult",
+    "Je recommanderai ma compagnie à mes connaissances à la recherche d'un emploi":                                "Q2_cult",
+    # ── Satisfaction (sat) ──────────────────────────────────────────────────
+    "Je suis satisfait de mon travail dans la compagnie":                                                                     "Q1_sat",
+    # ── Adéquation ressources / objectifs (adq_resources) ───────────────────
+    "Je sais ce que je dois faire pour atteindre les objectifs qui me sont fixés":                                      "Q1_adq_resources",
+    "Je dispose de toutes les ressources nécessaires à l’accomplissement de mes taches quotidiennes":         "Q2_adq_resources",
+    "Je dispose de toutes les ressources nécessaires à l'accomplissement de mes taches quotidiennes":              "Q2_adq_resources",
+    # ── Adéquation formation / rôle (adq_role) ──────────────────────────────
+    "Mes besoins de formations sont bien pris en compte":                                                                     "Q1_adq_role",
+    "Les formations dispensées sont cohérentes avec les taches dont j’ai la responsabilité ou qui me sont assignées": "Q2_adq_role",
+    "Les formations dispensées sont cohérentes avec les taches dont j'ai la responsabilité ou qui me sont assignées": "Q2_adq_role",
 }
 
-# =============================================================================
-# ██████╗ ██╗██████╗ ███████╗██╗     ██╗███╗   ██╗███████╗
-# ██╔══██╗██║██╔══██╗██╔════╝██║     ██║████╗  ██║██╔════╝
-# ██████╔╝██║██████╔╝█████╗  ██║     ██║██╔██╗ ██║█████╗
-# ██╔═══╝ ██║██╔═══╝ ██╔══╝  ██║     ██║██║╚██╗██║██╔══╝
-# ██║     ██║██║     ███████╗███████╗██║██║ ╚████║███████╗
-# PIPELINE WAVE-CI (intégré depuis karasek_Wave-CI.py)
-# =============================================================================
-
-# ---------------------------------------------------------------------------
-# CONSTANTES PIPELINE
-# ---------------------------------------------------------------------------
-VAR_LABELS: Dict[str, str] = {
-    "Genre":                   "le genre",
-    "Situation matrimonial":   "la situation matrimoniale",
-    "Catégorie Socio":         "la catégorie socioprofessionnelle",
-    "Direction":               "la direction",
-    "Fonction":                "la fonction",
-    "Poste de travail":        "le poste de travail",
-    "Tranche_age":             "la tranche d'âge",
-    "Tranche_age_binaire":     "la tranche d'âge (binaire)",
-    "Tranche_anciennete":      "l'ancienneté",
-    "Categorie_IMC":           "la catégorie IMC (OMS)",
-    "IMC_binaire":             "l'IMC (normal / surpoids-obésité)",
-    "Consommation reguliere d\u2019alcool": "la consommation régulière d'alcool",
-    "tabagisme":               "le tabagisme",
-    "Pratique reguliere du sport": "la pratique régulière du sport",
-    "Avez-vous un handicap physique":  "la présence d'un handicap physique",
-    "Avez-vous une maladie chronique": "la présence d'une maladie chronique",
-    "Avez-vous été suivi pour un probleme psychologique *": "le suivi psychologique",
-    "Dem_score_theo_cat":           "le niveau de demande psychologique",
-    "Lat_score_theo_cat":           "le niveau de latitude décisionnelle",
-    "SS_score_theo_cat":            "le niveau de soutien social",
-    "comp_score_theo_cat":          "le niveau d'utilisation des compétences",
-    "auto_score_theo_cat":          "le niveau d'autonomie décisionnelle",
-    "sup_score_theo_cat":           "le niveau de soutien hiérarchique",
-    "col_score_theo_cat":           "le niveau de soutien des collègues",
-    "rec_score_theo_cat":           "le niveau de reconnaissance",
-    "equ_score_theo_cat":           "le niveau d'équité de charge",
-    "cult_score_theo_cat":          "le niveau d'adhésion à la culture",
-    "adq_resources_score_theo_cat": "le niveau d'adéquation ressources / objectifs",
-    "adq_role_score_theo_cat":      "le niveau d'adéquation formation / rôle",
-    "sat_score_theo_cat":           "le niveau de satisfaction au travail",
-    "Karasek_quadrant_internal":    "le quadrant de Karasek (médiane interne)",
-    "Job_strain_internal":          "le Job Strain (médiane interne)",
-    "Iso_strain_internal":          "l'Isolement au Travail (médiane interne)",
-    "Karasek_quadrant_theoretical": "le quadrant de Karasek (seuil théorique)",
-    "Job_strain_theoretical":       "le Job Strain (seuil théorique)",
-    "Iso_strain_theoretical":       "l'Isolement au Travail (seuil théorique)",
-}
-
-MODALITY_ORDER: Dict[str, List[str]] = {
-    "Genre":               ["Homme", "Femme"],
-    "Tranche_age":         ["20-30 ans", "31-40 ans", "41-50 ans", "51 ans et plus"],
-    "Tranche_anciennete":  ["0-2 ans", "3-5 ans", "6-10 ans", "11-20 ans", "21 ans et +"],
-    "Categorie_IMC":       ["Insuffisance pondérale", "Corpulence normale", "Surpoids", "Obésité"],
-    "IMC_binaire":         ["Normal", "Surpoids/Obésité"],
-    "Karasek_quadrant_internal":    ["Actif", "Detendu", "Passif", "Tendu"],
-    "Job_strain_internal":          ["Absent", "Présent"],
-    "Iso_strain_internal":          ["Absent", "Présent"],
-    "Karasek_quadrant_theoretical": ["Actif", "Detendu", "Passif", "Tendu"],
-    "Job_strain_theoretical":       ["Absent", "Présent"],
-    "Iso_strain_theoretical":       ["Absent", "Présent"],
-}
-
-SCORE_CAT_ORDER = ["Faible", "Élevé"]
-
-
-# ---------------------------------------------------------------------------
-# CONFIG PIPELINE
-# ---------------------------------------------------------------------------
-class Config:
-    LIKERT_MIN = 1
-    LIKERT_MAX = 4
-
-    RENAME_MAPPING: Dict[str, str] = {
-        "Dans mon travail, je dois apprendre des choses nouvelles":                        "Q1_comp",
-        "Dans mon travail j\u2019effectue des t\u00e2ches r\u00e9p\u00e9titives":         "Q2_comp",
-        "Mon travail me demande d\u2019\u00eatre cr\u00e9atif":                            "Q3_comp",
-        "Mon travail me demande un haut niveau de comp\u00e9tence":                        "Q4_comp",
-        "Dans mon travail, j\u2019ai des activit\u00e9s vari\u00e9es":                    "Q5_comp",
-        "J\u2019ai l\u2019occasion de d\u00e9velopper mes comp\u00e9tences professionnelles": "Q6_comp",
-        "Mon travail me permet souvent de prendre des d\u00e9cisions moi-m\u00eame":       "Q1_auto",
-        "Dans ma t\u00e2che, j\u2019ai tr\u00e8s peu de libert\u00e9 pour d\u00e9cider comment je fais mon travail": "Q2_auto",
-        "J\u2019ai la possibilit\u00e9 d\u2019influencer le d\u00e9roulement de mon travail": "Q3_auto",
-        "Mon travail me demande de travailler tr\u00e8s vite":                             "Q1_dem",
-        "Mon travail demande de travailler intensement":                                    "Q2_dem",
-        "On me demande d\u2019effectuer une quantit\u00e9 de travail excessive":            "Q3_dem",
-        "Je dispose du temps n\u00e9cessaire pour effectuer correctement mon travail":      "Q4_dem",
-        "Je re\u00e7ois des ordres contradictoires de la part d\u2019autres personnes":    "Q5_dem",
-        "Mon travail n\u00e9cessite de longues p\u00e9riodes de concentration intense":    "Q6_dem",
-        "Mes t\u00e2ches sont souvent interrompues avant d\u2019\u00eatre achev\u00e9es, n\u00e9cessitant de les reprendre plus tard": "Q7_dem",
-        "Mon travail est \u00ab\u00a0tr\u00e8s bouscu l\u00e9\u00a0\u00bb ":              "Q8_dem",
-        "Attendre le travail de coll\u00e8gues ralentit souvent mon propre travail":        "Q9_dem",
-        "Mon sup\u00e9rieur se sent concern\u00e9 par le bien-\u00eatre de ses subordonn\u00e9s": "Q1_sup",
-        "Mon sup\u00e9rieur pr\u00eate attention \u00e0 ce que je dis":                    "Q2_sup",
-        "Mon sup\u00e9rieur m\u2019aide \u00e0 mener ma t\u00e2che \u00e0 bien":           "Q3_sup",
-        "Mon sup\u00e9rieur r\u00e9ussit facilement \u00e0 faire collaborer ses subordonn\u00e9s": "Q4_sup",
-        "Les coll\u00e8gues avec qui je travaille sont des gens professionnellement comp\u00e9tent": "Q1_col",
-        "Les coll\u00e8gues avec qui je travaille me manifestent de l\u2019int\u00e9r\u00eat": "Q2_col",
-        "Les coll\u00e8gues avec qui je travaille sont amicaux":                            "Q3_col",
-        "Les coll\u00e8gues avec qui je travaille m\u2019aident \u00e0 mener les t\u00e2ches \u00e0 bien": "Q4_col",
-        "On me traite injustement dans mon travail":                                        "Q1_rec",
-        "Ma s\u00e9curit\u00e9 d\u2019emploi est menac\u00e9e":                             "Q2_rec",
-        "Ma position professionnelle actuelle correspond bien \u00e0 ma formation":         "Q3_rec",
-        "Vu tous mes efforts, je re\u00e7ois le respect et l\u2019estime que je m\u00e9rite": "Q4_rec",
-        "Vu tous mes efforts, mes perspectives de promotion sont satisfaisantes":            "Q5_rec",
-        "Vu tous mes efforts, mon salaire est satisfaisant":                                "Q6_rec",
-        "La charge de travail est r\u00e9partie \u00e9quitablement dans mon \u00e9quipe":  "Q1_equ",
-        "Je m\u2019identifie \u00e0 la culture de l\u2019entreprise?":                     "Q1_cult",
-        "Je m'identifie à la culture de l'entreprise?":                                     "Q1_cult",
-        "Je recommanderai ma compagnie \u00e0 mes connaissances \u00e0 la recherche d\u2019un emploi": "Q2_cult",
-        "Je recommanderai ma compagnie à mes connaissances à la recherche d'un emploi":     "Q2_cult",
-        "Je suis satisfait de mon travail dans la compagnie":                               "Q1_sat",
-        "Je sais ce que je dois faire pour atteindre les objectifs qui me sont fix\u00e9s": "Q1_adq_resources",
-        "Je dispose de toutes les ressources n\u00e9cessaires \u00e0 l\u2019accomplissement de mes taches quotidiennes": "Q2_adq_resources",
-        "Mes besoins de formations sont bien pris en compte":                               "Q1_adq_role",
-        "Les formations dispens\u00e9es sont coh\u00e9rentes avec les taches dont j\u2019ai la responsabilit\u00e9 ou qui me sont assign\u00e9es": "Q2_adq_role",
-    }
-
-    INVERT_ITEMS: List[str] = ["Q2_auto", "Q2_comp", "Q4_dem", "Q1_rec", "Q2_rec"]
-
-    SCORE_MULTIPLIERS: Dict[str, int] = {
-        "comp": 2,
-        "auto": 4,
-        "dem":  1,
-        "sup":  1,
-        "col":  1,
-    }
-
-    KARASEK_SCORE_COMPOSITION: Dict[str, List[str]] = {
-        "Dem_score": ["dem_score"],
-        "Lat_score": ["comp_score", "auto_score"],
-        "SS_score":  ["sup_score",  "col_score"],
-    }
-
-    RH_SCORE_GROUPS: List[str] = ["rec", "equ", "cult", "adq_resources", "adq_role", "sat"]
-
-    BINARY_CATEGORY_LABELS = ("Faible", "Élevé")
-
-    DEM_THEO: float = 22.5
-    LAT_THEO: float = 60.0
-    SS_THEO:  float = 20.0
-
-    RH_THEORETICAL_THRESHOLDS: Dict[str, float] = {
-        "rec_score":           15.0,
-        "equ_score":            2.5,
-        "cult_score":           5.0,
-        "adq_resources_score":  5.0,
-        "adq_role_score":       5.0,
-        "sat_score":            2.5,
-    }
-
-    SCORE_LABELS: Dict[str, str] = {
-        "Dem_score":           "Demande psychologique",
-        "Lat_score":           "Latitude décisionnelle",
-        "SS_score":            "Soutien social",
-        "comp_score":          "Utilisation des compétences",
-        "auto_score":          "Autonomie décisionnelle",
-        "sup_score":           "Soutien hiérarchique",
-        "col_score":           "Soutien des collègues",
-        "rec_score":           "Reconnaissance",
-        "equ_score":           "Équité de charge",
-        "cult_score":          "Culture organisationnelle",
-        "adq_resources_score": "Adéquation ressources / objectifs",
-        "adq_role_score":      "Adéquation besoins en formation / rôle",
-        "sat_score":           "Satisfaction au travail",
-    }
-
-
-# ---------------------------------------------------------------------------
-# CLEANER
-# ---------------------------------------------------------------------------
-def imc_category(imc) -> str:
-    if pd.isna(imc):      return "Manquant"
-    if imc < 18.5:        return "Insuffisance pondérale"
-    if imc < 25:          return "Corpulence normale"
-    if imc < 30:          return "Surpoids"
-    return "Obésité"
-
-
-class Cleaner:
-
-    @staticmethod
-    def clean_likert(series: pd.Series,
-                     min_val: int = Config.LIKERT_MIN,
-                     max_val: int = Config.LIKERT_MAX) -> pd.Series:
-        s = pd.to_numeric(series, errors="coerce")
-        invalid = (~s.between(min_val, max_val)) & s.notna()
-        if invalid.any():
-            _pipeline_log(
-                f"⚠️  {invalid.sum()} valeur(s) Likert hors plage [{min_val},{max_val}] "
-                f"→ NaN pour '{series.name}'"
-            )
-        return s.where(s.between(min_val, max_val))
-
-    @staticmethod
-    def invert_items(df: pd.DataFrame, items: List[str],
-                     min_val: int = Config.LIKERT_MIN,
-                     max_val: int = Config.LIKERT_MAX) -> pd.DataFrame:
-        df        = df.copy()
-        available = [c for c in items if c in df.columns]
-        missing   = set(items) - set(available)
-        if missing:
-            _pipeline_log(f"ℹ️  Items à inverser absents : {missing}")
-        if available:
-            df[available] = (min_val + max_val) - df[available]
-            _pipeline_log(f"🔄 Inversion appliquée sur {len(available)} item(s) : {available}")
-        return df
-
-    @staticmethod
-    def compute_group_score(df: pd.DataFrame, suffix: str,
-                            multiplier: int = 1,
-                            normalize: bool = True) -> pd.Series:
-        cols = [c for c in df.columns if c.endswith(f"_{suffix}")]
-        if not cols:
-            _pipeline_log(f"⚠️  Aucun item trouvé pour le suffixe '_{suffix}' → série NaN")
-            return pd.Series(np.nan, index=df.index, name=f"{suffix}_score")
-
-        ssum       = df[cols].sum(axis=1, skipna=True)
-        n_answered = df[cols].notna().sum(axis=1)
-        n_items    = len(cols)
-
-        with np.errstate(invalid="ignore", divide="ignore"):
-            score = (ssum / n_answered.replace(0, np.nan) * n_items * multiplier
-                     if normalize else ssum * multiplier)
-
-        score      = score.where(n_answered > 0, np.nan)
-        score.name = f"{suffix}_score"
-        return score
-
-    @staticmethod
-    def enrich_sociodem(df: pd.DataFrame) -> pd.DataFrame:
-        df = df.copy()
-
-        # Tranche d'âge
-        if "Age" in df.columns:
-            age_num = pd.to_numeric(df["Age"], errors="coerce")
-            df["Tranche_age"] = pd.cut(
-                age_num,
-                bins=[0, 30, 40, 50, np.inf],
-                labels=["20-30 ans", "31-40 ans", "41-50 ans", "51 ans et plus"],
-                right=True,
-            ).astype(str).replace("nan", np.nan)
-            df["Tranche_age"] = df["Tranche_age"].where(df["Tranche_age"] != "nan", np.nan)
-            _tage_bin = pd.Series("plus de 40 ans", index=df.index, dtype=object)
-            _tage_bin[age_num <= 40] = "moins de 40 ans"
-            _tage_bin[age_num.isna()] = None
-            df["Tranche_age_binaire"] = _tage_bin
-            _pipeline_log("✅ Tranche_age et Tranche_age_binaire créées depuis 'Age'")
-
-        # Ancienneté
-        anc_col = "Ancienneté"
-        if anc_col in df.columns:
-            anc_num = pd.to_numeric(df[anc_col], errors="coerce")
-            df["Tranche_anciennete"] = pd.cut(
-                anc_num,
-                bins=[-1, 2, 5, 10, 20, np.inf],
-                labels=["0-2 ans", "3-5 ans", "6-10 ans", "11-20 ans", "21 ans et +"],
-            )
-            _pipeline_log("✅ Tranche_anciennete créée")
-
-        # IMC
-        if "Poids" in df.columns and "Taille" in df.columns:
-            poids  = pd.to_numeric(df["Poids"],  errors="coerce")
-            taille = pd.to_numeric(df["Taille"], errors="coerce")
-            taille_m = taille / 100 if taille.median() > 3 else taille
-            imc_num           = poids / (taille_m ** 2)
-            df["Categorie_IMC"] = imc_num.apply(imc_category)
-            _imc_bin = pd.Series("Surpoids/Obésité", index=df.index, dtype=object)
-            _imc_bin[df["Categorie_IMC"].isin(["Insuffisance pondérale", "Corpulence normale"])] = "Normal"
-            _imc_bin[df["Categorie_IMC"] == "Manquant"] = None
-            df["IMC_binaire"] = _imc_bin
-            _pipeline_log("✅ Categorie_IMC et IMC_binaire créées depuis Poids/Taille")
-
-        return df
-
-
-# ---------------------------------------------------------------------------
-# CLASSIFIER
-# ---------------------------------------------------------------------------
-class KarasekClassifier:
-
-    @staticmethod
-    def classify_by_medians(df: pd.DataFrame) -> pd.DataFrame:
-        df      = df.copy()
-        missing = [c for c in ["Dem_score", "Lat_score", "SS_score"] if c not in df.columns]
-        if missing:
-            raise ValueError(f"Scores manquants pour la classification : {missing}")
-
-        dem_m = df["Dem_score"].median()
-        lat_m = df["Lat_score"].median()
-        ss_m  = df["SS_score"].median()
-        _pipeline_log(
-            f"📐 [INTERNE] Médianes → Dem:{dem_m:.2f}  Lat:{lat_m:.2f}  SS:{ss_m:.2f}"
-        )
-
-        _conds_int = [
-            (df["Lat_score"] >= lat_m) & (df["Dem_score"] >= dem_m),
-            (df["Lat_score"] >= lat_m) & (df["Dem_score"] <  dem_m),
-            (df["Lat_score"] <  lat_m) & (df["Dem_score"] >= dem_m),
-        ]
-        df["Karasek_quadrant_internal"] = pd.Categorical(
-            np.select(_conds_int, ["Actif", "Detendu", "Tendu"], default="Passif").astype(str)
-        )
-        df["Job_strain_internal"] = pd.Series(
-            np.where((df["Dem_score"] >= dem_m) & (df["Lat_score"] < lat_m), "Présent", "Absent"),
-            dtype=object, index=df.index,
-        )
-        df["Iso_strain_internal"] = pd.Series(
-            np.where((df["Dem_score"] >= dem_m) & (df["SS_score"]  < ss_m),  "Présent", "Absent"),
-            dtype=object, index=df.index,
-        )
-        df.attrs["thresholds_internal"] = {
-            "method": "median_internal", "usage": "rapport_organisationnel",
-            "Dem_median": float(dem_m), "Lat_median": float(lat_m), "SS_median": float(ss_m),
-        }
-        _pipeline_log("✅ [INTERNE] Classification terminée → colonnes *_internal")
-        return df
-
-    @staticmethod
-    def classify_by_theoretical_thresholds(
-        df: pd.DataFrame,
-        dem_threshold: float,
-        lat_threshold: float,
-        ss_threshold: float,
-    ) -> pd.DataFrame:
-        df = df.copy()
-        missing = [c for c in ["Dem_score", "Lat_score", "SS_score"] if c not in df.columns]
-        if missing:
-            raise ValueError(f"Scores manquants pour la classification : {missing}")
-
-        _pipeline_log(
-            f"📐 [THÉORIQUE] Seuils → Dem:{dem_threshold:.2f}  "
-            f"Lat:{lat_threshold:.2f}  SS:{ss_threshold:.2f}"
-        )
-
-        _conds_theo = [
-            (df["Lat_score"] >= lat_threshold) & (df["Dem_score"] >= dem_threshold),
-            (df["Lat_score"] >= lat_threshold) & (df["Dem_score"] <  dem_threshold),
-            (df["Lat_score"] <  lat_threshold) & (df["Dem_score"] >= dem_threshold),
-        ]
-        df["Karasek_quadrant_theoretical"] = pd.Categorical(
-            np.select(_conds_theo, ["Actif", "Detendu", "Tendu"], default="Passif").astype(str)
-        )
-        df["Job_strain_theoretical"] = pd.Series(
-            np.where((df["Dem_score"] >= dem_threshold) & (df["Lat_score"] < lat_threshold), "Présent", "Absent"),
-            dtype=object, index=df.index,
-        )
-        df["Iso_strain_theoretical"] = pd.Series(
-            np.where((df["Dem_score"] >= dem_threshold) & (df["SS_score"]  < ss_threshold),  "Présent", "Absent"),
-            dtype=object, index=df.index,
-        )
-        df.attrs["thresholds_theoretical"] = {
-            "method": "theoretical_midpoint", "usage": "dashboard_monitoring",
-            "note":   "Seuil basé sur le point médian de l'échelle — indicateur conventionnel non clinique",
-            "Dem_threshold": float(dem_threshold),
-            "Lat_threshold": float(lat_threshold),
-            "SS_threshold":  float(ss_threshold),
-        }
-        _pipeline_log("✅ [THÉORIQUE] Classification terminée → colonnes *_theoretical")
-        return df
-
-    @staticmethod
-    def categorize_scores_by_theoretical_threshold(
-        df: pd.DataFrame,
-        score_thresholds: Dict[str, float],
-    ) -> pd.DataFrame:
-        df     = df.copy()
-        labels = Config.BINARY_CATEGORY_LABELS
-        for col, threshold in score_thresholds.items():
-            if col not in df.columns:
-                _pipeline_log(f"⚠️  Score absent, ignoré : {col}")
-                continue
-            cat_col = f"{col}_theo_cat"
-            _cat = pd.Series(
-                np.where(df[col] <= threshold, labels[0], labels[1]),
-                index=df.index, dtype=object,
-            )
-            _cat[df[col].isna()] = "Non renseigné"
-            df[cat_col] = _cat
-            _pipeline_log(f"🏷️  Catégorisation {col} : seuil={threshold} → {cat_col}")
-        return df
-
-
-# ---------------------------------------------------------------------------
-# PIPELINE PRINCIPAL
-# ---------------------------------------------------------------------------
-# Buffer de logs (rempli pendant le pipeline, affiché dans l'expander)
-_pipeline_logs: List[str] = []
-
-def _pipeline_log(msg: str) -> None:
-    """Ajoute un message au buffer de logs du pipeline."""
-    _pipeline_logs.append(msg)
-
-
-def run_karasek_pipeline(df_raw: pd.DataFrame) -> Tuple[pd.DataFrame, Dict, List[str]]:
-    """
-    Exécute le pipeline Wave-CI complet sur un DataFrame brut.
-    Retourne (df_enrichi, metrics, logs).
-
-    Logique double classification :
-      *_internal    → médiane organisationnelle → RAPPORT
-      *_theoretical → seuil théorique (point central) → DASHBOARD
-    """
-    global _pipeline_logs
-    _pipeline_logs = []
-
-    config     = Config()
-    cleaner    = Cleaner()
-    classifier = KarasekClassifier()
-
-    rows_initial = len(df_raw)
-    _pipeline_log(f"📂 Données brutes : {rows_initial} lignes × {df_raw.shape[1]} colonnes")
-
-    # 1. Renommage des items Likert
-    mapping = {k: v for k, v in config.RENAME_MAPPING.items() if k in df_raw.columns}
-    df = df_raw.rename(columns=mapping)
-    _pipeline_log(f"🔤 Renommage Likert : {len(mapping)} colonne(s) renommée(s)")
-
-    # 2. Enrichissement socio-démographique
-    df = cleaner.enrich_sociodem(df)
-
-    # 3. Nettoyage Likert
-    lk_cols = [c for c in df.columns if c.startswith("Q") and "_" in c]
-    for col in lk_cols:
-        df[col] = cleaner.clean_likert(df[col])
-    if lk_cols:
-        _pipeline_log(f"🧹 Nettoyage Likert : {len(lk_cols)} colonne(s)")
-
-    # 4. Inversion des items inversés
-    df = cleaner.invert_items(df, config.INVERT_ITEMS)
-
-    # 5. Suppression des lignes avec NA sur les Likert
-    if lk_cols:
-        before = len(df)
-        df     = df.dropna(subset=lk_cols)
-        dropped = before - len(df)
-        if dropped:
-            _pipeline_log(f"🗑️  Lignes supprimées (NA Likert) : {dropped}")
-
-    # 6. Calcul des scores
-    for g, mult in config.SCORE_MULTIPLIERS.items():
-        df[f"{g}_score"] = cleaner.compute_group_score(df, g, multiplier=mult, normalize=True)
-
-    for name, comps in config.KARASEK_SCORE_COMPOSITION.items():
-        existing  = [c for c in comps if c in df.columns]
-        df[name]  = sum(df[c] for c in existing) if existing else np.nan
-
-    for g in config.RH_SCORE_GROUPS:
-        df[f"{g}_score"] = cleaner.compute_group_score(df, g, multiplier=1, normalize=True)
-
-    _pipeline_log("📊 Scores continus calculés (Karasek + RH)")
-
-    # 7. Stats des scores principaux
-    for sc in ["Dem_score", "Lat_score", "SS_score"]:
-        if sc in df.columns:
-            s = df[sc]
-            _pipeline_log(
-                f"   {sc} → moy={s.mean():.2f} ± {s.std():.2f}  "
-                f"[{s.min():.1f} – {s.max():.1f}]"
-            )
-
-    # 8. Classification interne (médiane) → RAPPORT
-    df = classifier.classify_by_medians(df)
-
-    # 9. Classification théorique (seuil) → DASHBOARD
-    df = classifier.classify_by_theoretical_thresholds(
-        df, config.DEM_THEO, config.LAT_THEO, config.SS_THEO
-    )
-
-    # 10. Catégorisation binaire de tous les scores
-    all_thresholds = {
-        "Dem_score": config.DEM_THEO,
-        "Lat_score": config.LAT_THEO,
-        "SS_score":  config.SS_THEO,
-        **{sc: th for sc, th in config.RH_THEORETICAL_THRESHOLDS.items() if sc in df.columns},
-        **{k: v for k, v in {
-            "comp_score": 30.0,
-            "auto_score": 30.0,
-            "sup_score":  10.0,
-            "col_score":  10.0,
-        }.items() if k in df.columns},
-    }
-    df = classifier.categorize_scores_by_theoretical_threshold(df, all_thresholds)
-
-    rows_final = len(df)
-    _pipeline_log(f"\n✅ Pipeline terminé : {rows_final} lignes finales (perdues : {rows_initial - rows_final})")
-
-    metrics = {
-        "rows_initial":           rows_initial,
-        "rows_final":             rows_final,
-        "columns_generated":      df.shape[1],
-        "thresholds_internal":    df.attrs.get("thresholds_internal", {}),
-        "thresholds_theoretical": df.attrs.get("thresholds_theoretical", {}),
-    }
-
-    return df, metrics, list(_pipeline_logs)
+INVERT_ITEMS      = ["Q2_auto", "Q2_comp", "Q4_dem", "Q1_rec", "Q2_rec"]
+SCORE_MULTIPLIERS = {"comp": 2, "auto": 4, "dem": 1, "sup": 1, "col": 1}
+RH_SCORE_GROUPS   = ["rec", "equ", "cult", "adq_resources", "adq_role", "sat"]
 
 
 # =============================================================================
-# HELPERS
-# =============================================================================
-def resolve_csp_col(df):
-    for c in ("Categorie Socio", "Catégorie Socio", "CSP"):
-        if c in df.columns:
-            return c
-    return None
-
-
-def resolve_quadrant_col(df):
-    # Préférer la colonne théorique (dashboard) ; fallback sur interne
-    for c in ("Karasek_quadrant_theoretical", "Karasek_quadrant_internal"):
-        if c in df.columns:
-            return c
-    return None
-
-
-def _norm_text(v):
-    return re.sub(r"\s+", " ", str(v).strip()).casefold()
-
-
-# =============================================================================
-# CSS
+# CSS — identique au dashboard original Wave-CI
 # =============================================================================
 def inject_css():
     st.markdown("""
@@ -791,27 +152,24 @@ def inject_css():
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,400;1,9..144,600&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; }
-html, body, [class*="css"] {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    color: #0F2340;
-    font-size: 19px;
-}
+html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; color: #0F2340; }
+
 .stApp {
     background-color: #F0F7FF;
     background-image:
         radial-gradient(ellipse 1000px 500px at 10% -5%, rgba(56,163,232,0.12) 0%, transparent 55%),
         radial-gradient(ellipse 600px 400px at 90% 105%, rgba(249,115,22,0.08) 0%, transparent 50%);
 }
-[data-testid="stSidebar"], [data-testid="collapsedControl"],
-section[data-testid="stSidebarContent"] { display: none !important; }
-.main .block-container {
-    padding-top: 0.75rem; padding-left: 2rem; padding-right: 2rem; max-width: 1500px;
-}
+.main .block-container { padding-top: 0.75rem; padding-left: 2rem; padding-right: 2rem; max-width: 1500px; }
+
+/* SIDEBAR */
+[data-testid="stSidebar"] { background: #FFFFFF !important; border-right: 1px solid #D0E8F8 !important; }
+
+/* HERO */
 .hero-band {
     background: linear-gradient(135deg, #FFFFFF 0%, #F5F9FF 100%);
-    border: 1px solid #D0E8F8; border-radius: 20px;
-    padding: 1.4rem 2rem 1.3rem; margin-bottom: 0.9rem;
-    position: relative; overflow: hidden;
+    border: 1px solid #D0E8F8; border-radius: 20px; padding: 1.4rem 2rem 1.3rem;
+    margin-bottom: 0.9rem; position: relative; overflow: hidden;
     box-shadow: 0 4px 24px rgba(56,163,232,0.08), 0 1px 0 rgba(255,255,255,0.9) inset;
 }
 .hero-band::before {
@@ -826,42 +184,28 @@ section[data-testid="stSidebarContent"] { display: none !important; }
     font-style: italic; color: #0F2340; letter-spacing: -0.02em; margin: 0; line-height: 1;
 }
 .hero-wordmark h1 span { color: #38A3E8; }
-.hero-subtitle {
-    font-size: 0.86rem; color: #4E6A88; letter-spacing: 0.05em;
-    text-transform: uppercase; font-weight: 600; margin-top: 0.4rem;
-}
+.hero-subtitle { font-size: 0.86rem; color: #4E6A88; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600; margin-top: 0.4rem; }
 .hero-chip {
-    display: inline-flex; align-items: center; gap: 0.4rem;
-    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em;
-    text-transform: uppercase; color: #F97316; background: rgba(249,115,22,0.08);
-    border: 1px solid rgba(249,115,22,0.25); border-radius: 999px; padding: 0.3rem 0.8rem;
+    display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.65rem;
+    font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #F97316;
+    background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.25);
+    border-radius: 999px; padding: 0.3rem 0.8rem;
 }
-.hero-chip::before {
-    content: ''; width: 6px; height: 6px; border-radius: 50%;
-    background: #F97316; animation: blink 2s ease-in-out infinite;
-}
+.hero-chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #F97316; animation: blink 2s ease-in-out infinite; }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-.filter-shell {
-    background: #FFFFFF; border: 1px solid #D0E8F8; border-radius: 16px;
-    padding: 1rem 1.5rem 0.8rem; margin-bottom: 0.8rem;
-    box-shadow: 0 2px 12px rgba(56,163,232,0.06);
-    position: sticky; top: 0.55rem; z-index: 40; backdrop-filter: blur(6px);
-}
-.filter-label {
-    font-size: 0.76rem; font-weight: 700; color: #2F577F;
-    letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.3rem; display: block;
-}
+
+/* SECTION TITLE */
 .section-title {
-    display: flex; align-items: center; gap: 0.7rem;
-    font-family: 'Fraunces', serif; font-size: 1.2rem; font-style: italic;
-    font-weight: 400; color: #0F2340;
+    display: flex; align-items: center; gap: 0.7rem; font-family: 'Fraunces', serif;
+    font-size: 1.2rem; font-style: italic; font-weight: 400; color: #0F2340;
     margin: 1.8rem 0 1rem; padding-bottom: 0.65rem; border-bottom: 2px solid #E4F0FB;
 }
 .section-title::before {
     content: ''; display: inline-block; width: 4px; height: 20px;
-    background: linear-gradient(180deg, #38A3E8 0%, #F97316 100%);
-    border-radius: 2px; flex-shrink: 0;
+    background: linear-gradient(180deg, #38A3E8 0%, #F97316 100%); border-radius: 2px; flex-shrink: 0;
 }
+
+/* KPI CARD */
 .kpi-card {
     background: #FFFFFF; border: 1px solid #D6E8F7; border-radius: 16px;
     padding: 1.3rem 1.2rem 1.1rem; text-align: center;
@@ -875,66 +219,71 @@ section[data-testid="stSidebarContent"] { display: none !important; }
 }
 .kpi-card:hover { transform: translateY(-4px); border-color: #AAD5F5; box-shadow: 0 10px 32px rgba(56,163,232,0.15); }
 .kpi-card:hover::after { opacity: 1; }
-.kpi-label {
-    font-size: 0.8rem; color: #4E6A88 !important; text-transform: uppercase;
-    letter-spacing: 0.09em; font-weight: 700; margin-bottom: 0.55rem; display: block;
-}
+.kpi-label { font-size: 0.8rem; color: #4E6A88 !important; text-transform: uppercase; letter-spacing: 0.09em; font-weight: 700; margin-bottom: 0.55rem; display: block; }
 .kpi-icon { width: 38px; height: 38px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.55rem; }
 .kpi-value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 2.35rem; font-weight: 800; color: #0F2340 !important; line-height: 1; letter-spacing: -0.04em; }
 @keyframes slideUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+
+/* GAUGE CARD */
 .gauge-card {
     background: #FFFFFF; border: 1px solid #D6E8F7; border-radius: 18px;
     padding: 1.6rem 1.2rem 1.3rem; text-align: center;
-    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
     animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
     box-shadow: 0 2px 8px rgba(56,163,232,0.06); height: 100%; position: relative; overflow: hidden;
 }
-.gauge-card::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: linear-gradient(90deg, #38A3E8, #F97316); opacity: 0; transition: opacity 0.22s;
-}
+.gauge-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #38A3E8, #F97316); opacity: 0; transition: opacity 0.22s; }
 .gauge-card:hover { transform: translateY(-4px); border-color: #AAD5F5; box-shadow: 0 12px 36px rgba(56,163,232,0.15); }
 .gauge-card:hover::before { opacity: 1; }
 .gauge-semi-wrap { position: relative; width: 180px; height: 90px; margin: 0 auto 0.7rem; overflow: hidden; }
-.gauge-semi-bg { position: absolute; width: 180px; height: 180px; border-radius: 50%; background: #EDF5FD; top: 0; left: 0; }
+.gauge-semi-bg   { position: absolute; width: 180px; height: 180px; border-radius: 50%; background: #EDF5FD; top: 0; left: 0; }
 .gauge-semi-fill {
     position: absolute; width: 180px; height: 180px; border-radius: 50%; top: 0; left: 0;
-    background: conic-gradient(from 270deg, var(--gauge-color, #38A3E8) 0deg, var(--gauge-color, #38A3E8) calc(var(--g, 0deg)), transparent calc(var(--g, 0deg)));
-    transition: --g 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: conic-gradient(from 270deg, var(--gauge-color,#38A3E8) 0deg, var(--gauge-color,#38A3E8) calc(var(--g,0deg)), transparent calc(var(--g,0deg)));
 }
 .gauge-semi-inner { position: absolute; width: 112px; height: 112px; background: #FFFFFF; border-radius: 50%; top: 34px; left: 34px; box-shadow: inset 0 2px 8px rgba(56,163,232,0.06); }
-.gauge-semi-tick { position: absolute; width: 2px; height: 18px; background: #D6E8F7; top: 4px; left: 89px; transform-origin: bottom center; }
-.gauge-value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.9rem; font-weight: 800; color: #0F2340; line-height: 1; letter-spacing: -0.04em; }
-.gauge-pct { font-size: 1rem; font-weight: 500; color: #6B88A8; }
-.gauge-label { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.96rem; font-weight: 700; color: #0F2340; margin-top: 0.55rem; }
+.gauge-value    { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.9rem; font-weight: 800; color: #0F2340; line-height: 1; letter-spacing: -0.04em; }
+.gauge-pct      { font-size: 1rem; font-weight: 500; color: #6B88A8; }
+.gauge-label    { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.96rem; font-weight: 700; color: #0F2340; margin-top: 0.55rem; }
 .gauge-sublabel { font-size: 0.84rem; color: #4E6A88; margin-top: 0.25rem; line-height: 1.5; }
-.gauge-badge { display: inline-block; margin-top: 0.7rem; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.22rem 0.85rem; border-radius: 999px; }
+.gauge-badge    { display: inline-block; margin-top: 0.7rem; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.22rem 0.85rem; border-radius: 999px; }
 .gauge-badge.good  { background: #DCFCE7; color: #15803D; }
-.gauge-badge.warn  { background: #FEF3C7; color: #B45309; }
 .gauge-badge.alert { background: #FEE2E2; color: #B91C1C; }
+
+/* PROGRESS */
 .prog-track { background: #EDF5FD; border-radius: 999px; height: 7px; overflow: hidden; margin-top: 5px; }
+.prog-fill  { height: 7px; border-radius: 999px; width: 0%; transition: width 1.1s cubic-bezier(0.4,0,0.2,1); }
 .panel-relief { background: #FFFFFF; border: 1px solid #D6E8F7; border-radius: 16px; padding: 0.9rem 1rem 0.6rem; box-shadow: 0 3px 14px rgba(56,163,232,0.08); }
-.prog-fill { height: 7px; border-radius: 999px; width: 0%; transition: width 1.1s cubic-bezier(0.4, 0, 0.2, 1); }
-.workzone-card { background: #FFFFFF; border: 1px solid #D6E8F7; border-radius: 14px; padding: 1.1rem 1rem; text-align: center; transition: transform 0.2s, box-shadow 0.2s; animation: slideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; box-shadow: 0 2px 6px rgba(56,163,232,0.05); }
-.workzone-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(56,163,232,0.12); }
-.ls-card { background: #FFFFFF; border: 1px solid #D6E8F7; border-radius: 14px; padding: 1.1rem 1rem; text-align: center; transition: transform 0.2s, box-shadow 0.2s; animation: slideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; box-shadow: 0 2px 6px rgba(56,163,232,0.05); }
-.ls-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(56,163,232,0.1); }
-.sat-kpi-card { background: #FFFFFF; border: 1px solid #D6E8F7; border-radius: 14px; padding: 1.1rem 1rem; text-align: center; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 6px rgba(56,163,232,0.05); }
-.sat-kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(56,163,232,0.1); }
+
+/* WORKZONE / LS CARDS */
+.workzone-card, .ls-card {
+    background: #FFFFFF; border: 1px solid #D6E8F7; border-radius: 14px;
+    padding: 1.1rem 1rem; text-align: center; transition: transform 0.2s, box-shadow 0.2s;
+    animation: slideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+    box-shadow: 0 2px 6px rgba(56,163,232,0.05);
+}
+.workzone-card:hover, .ls-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(56,163,232,0.12); }
+
+/* TABS */
 [data-baseweb="tab-list"] { background: #FFFFFF !important; border-radius: 12px; padding: 4px; gap: 3px; border: 1px solid #D0E8F8; box-shadow: 0 2px 8px rgba(56,163,232,0.07); }
 [data-baseweb="tab"] { font-family: 'Plus Jakarta Sans', sans-serif !important; font-weight: 600 !important; font-size: 0.88rem !important; color: #6B88A8 !important; border-radius: 9px !important; padding: 0.5rem 1.4rem !important; transition: all 0.2s !important; }
 [aria-selected="true"][data-baseweb="tab"] { background: linear-gradient(135deg, #38A3E8, #2B8FD0) !important; color: #FFFFFF !important; font-weight: 700 !important; box-shadow: 0 3px 12px rgba(56,163,232,0.3) !important; }
 [data-baseweb="tab-highlight"], [data-baseweb="tab-border"] { display: none !important; }
+
+/* SELECTS & BUTTONS */
 [data-baseweb="select"] > div { background-color: #FFFFFF !important; border-color: #C8DFF2 !important; border-radius: 10px !important; color: #0F2340 !important; }
-[data-baseweb="select"] > div:focus-within { border-color: #38A3E8 !important; box-shadow: 0 0 0 3px rgba(56,163,232,0.15) !important; }
 .stButton > button { background: linear-gradient(135deg, #38A3E8, #2B8FD0) !important; border: none !important; color: #FFFFFF !important; border-radius: 10px !important; font-family: 'Plus Jakarta Sans', sans-serif !important; font-weight: 700 !important; font-size: 0.8rem !important; letter-spacing: 0.02em !important; box-shadow: 0 3px 10px rgba(56,163,232,0.25) !important; transition: all 0.18s !important; }
 .stButton > button:hover { background: linear-gradient(135deg, #F97316, #EA6A0A) !important; box-shadow: 0 4px 16px rgba(249,115,22,0.3) !important; transform: translateY(-1px) !important; }
-[data-testid="stSlider"] [role="slider"] { background: #38A3E8 !important; border-color: #38A3E8 !important; }
-[data-testid="stDataFrame"] { border-radius: 12px !important; overflow: hidden !important; border: 1px solid #D6E8F7 !important; box-shadow: 0 2px 8px rgba(56,163,232,0.06) !important; }
+
+/* PLOTLY */
+div[data-testid="stPlotlyChart"] { border: 1px solid #D6E8F7; border-radius: 12px; background: #FFFFFF; box-shadow: 0 4px 16px rgba(56,163,232,0.06); padding: 4px; }
+
+/* SCROLLBAR */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #EDF5FD; }
 ::-webkit-scrollbar-thumb { background: #AAD5F5; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #38A3E8; }
+
 hr { border: none; border-top: 1px solid #E4F0FB; margin: 1rem 0; }
 @property --g { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 </style>
@@ -943,234 +292,322 @@ hr { border: none; border-top: 1px solid #E4F0FB; margin: 1rem 0; }
 
 def inject_animation_js():
     components.html("""
-    <script>
-    const rootDoc = window.parent && window.parent.document ? window.parent.document : document;
-    function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
-    function cleanNum(v, min, max) {
-        var n = parseFloat(v); if (!isFinite(n)) n = 0;
-        if (typeof min === 'number') n = Math.max(min, n);
-        if (typeof max === 'number') n = Math.min(max, n);
-        return n;
-    }
-    function isVisible(el) {
-        if (!el || !el.isConnected) return false;
-        const style = rootDoc.defaultView.getComputedStyle(el);
-        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
-        const rect = el.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0;
-    }
-    function numberKey(el) { return [cleanNum(el.dataset.target,0,null), el.dataset.suffix||'', el.dataset.prefix||'', el.dataset.decimals||0].join('|'); }
-    function animateNumber(el) {
-        const target=cleanNum(el.dataset.target,0,null), suffix=el.dataset.suffix||'', prefix=el.dataset.prefix||'', decimals=el.dataset.decimals?parseInt(el.dataset.decimals,10):0, key=numberKey(el);
-        if (el.dataset.animKey===key) return; el.dataset.animKey=key;
-        const duration=700, start=performance.now();
-        (function step(now){const t=Math.min(1,(now-start)/duration),current=Math.max(0,target*easeOut(t));el.textContent=prefix+(decimals===0?Math.round(current):current.toFixed(decimals))+suffix;if(t<1)requestAnimationFrame(step);else el.textContent=prefix+(decimals===0?Math.round(target):target.toFixed(decimals))+suffix;})(start);
-    }
-    function animateGauge(fill) {
-        const target=cleanNum(fill.dataset.target,0,100),key=String(target);
-        if(fill.dataset.animKey===key)return;fill.dataset.animKey=key;
-        const counter=fill.closest('.gauge-card')?.querySelector('.gauge-counter'),duration=800,start=performance.now();
-        fill.style.setProperty('--g','0deg');
-        requestAnimationFrame(()=>setTimeout(()=>fill.style.setProperty('--g',(target*1.8).toFixed(1)+'deg'),60));
-        if(counter){(function step(now){const t=Math.min(1,(now-start)/duration);counter.textContent=Math.round(target*easeOut(t));if(t<1)requestAnimationFrame(step);else counter.textContent=Math.round(target);})(start);}
-    }
-    function animateProgress(el){const target=cleanNum(el.dataset.target,0,100),key=String(target);if(el.dataset.animKey===key)return;el.dataset.animKey=key;el.style.width='0%';requestAnimationFrame(()=>setTimeout(()=>el.style.width=target+'%',40));}
-    function runFor(el){if(el.matches('.animate-number'))animateNumber(el);else if(el.matches('.gauge-semi-fill[data-target]'))animateGauge(el);else if(el.matches('.prog-fill[data-target]'))animateProgress(el);}
-    const observed=new WeakSet(),io=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting&&isVisible(e.target))runFor(e.target);});},{threshold:0.2});
-    function register(){rootDoc.querySelectorAll('.animate-number,.gauge-semi-fill[data-target],.prog-fill[data-target]').forEach(el=>{if(el.matches('.animate-number')){const k=numberKey(el);if(el.dataset.animKey&&el.dataset.animKey!==k)delete el.dataset.animKey;}else{const t=cleanNum(el.dataset.target,0,100);if(el.dataset.animKey&&el.dataset.animKey!==String(t))delete el.dataset.animKey;}if(!observed.has(el)){io.observe(el);observed.add(el);}if(isVisible(el)){const r=el.getBoundingClientRect(),vh=rootDoc.defaultView?.innerHeight||900;if(r.top<vh*0.92&&r.bottom>0)runFor(el);}});}
-    setTimeout(register,60);let t=null;new MutationObserver(()=>{if(t)clearTimeout(t);t=setTimeout(()=>setTimeout(register,60),90);}).observe(rootDoc.body,{childList:true,subtree:true});
-    rootDoc.addEventListener('click',evt=>{if(evt.target?.closest('[role="tab"]'))setTimeout(()=>setTimeout(register,60),120);},true);
-    </script>
-    """, height=0)
+<script>
+const rootDoc = window.parent && window.parent.document ? window.parent.document : document;
+function easeOut(t) { return 1 - Math.pow(1-t,3); }
+function cleanNum(v,min,max){var n=parseFloat(v);if(!isFinite(n))n=0;if(typeof min==='number')n=Math.max(min,n);if(typeof max==='number')n=Math.min(max,n);return n;}
+function isVisible(el){if(!el||!el.isConnected)return false;const s=rootDoc.defaultView.getComputedStyle(el);if(s.display==='none'||s.visibility==='hidden'||s.opacity==='0')return false;const r=el.getBoundingClientRect();return r.width>0&&r.height>0;}
+function numberKey(el){return[cleanNum(el.dataset.target,0,null),el.dataset.suffix||'',el.dataset.prefix||'',el.dataset.decimals||0].join('|');}
+function animateNumber(el){
+    const target=cleanNum(el.dataset.target,0,null),suffix=el.dataset.suffix||'',prefix=el.dataset.prefix||'',decimals=el.dataset.decimals?parseInt(el.dataset.decimals,10):0,key=numberKey(el);
+    if(el.dataset.animKey===key)return;el.dataset.animKey=key;
+    const duration=700,start=performance.now();
+    (function step(now){const t=Math.min(1,(now-start)/duration),cur=Math.max(0,target*easeOut(t));
+    el.textContent=prefix+(decimals===0?Math.round(cur):cur.toFixed(decimals))+suffix;
+    if(t<1)requestAnimationFrame(step);else el.textContent=prefix+(decimals===0?Math.round(target):target.toFixed(decimals))+suffix;})(start);
+}
+function animateGauge(fill){
+    const target=cleanNum(fill.dataset.target,0,100),key=String(target);
+    if(fill.dataset.animKey===key)return;fill.dataset.animKey=key;
+    const counter=fill.closest('.gauge-card')?.querySelector('.gauge-counter'),duration=800,start=performance.now();
+    fill.style.setProperty('--g','0deg');
+    requestAnimationFrame(()=>setTimeout(()=>fill.style.setProperty('--g',(target*1.8).toFixed(1)+'deg'),60));
+    if(counter){(function step(now){const t=Math.min(1,(now-start)/duration);counter.textContent=Math.round(target*easeOut(t));if(t<1)requestAnimationFrame(step);else counter.textContent=Math.round(target);})(start);}
+}
+function animateProgress(el){
+    const target=cleanNum(el.dataset.target,0,100),key=String(target);
+    if(el.dataset.animKey===key)return;el.dataset.animKey=key;
+    el.style.width='0%';requestAnimationFrame(()=>setTimeout(()=>el.style.width=target+'%',40));
+}
+function runFor(el){if(el.matches('.animate-number'))animateNumber(el);else if(el.matches('.gauge-semi-fill[data-target]'))animateGauge(el);else if(el.matches('.prog-fill[data-target]'))animateProgress(el);}
+const observed=new WeakSet(),io=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting&&isVisible(e.target))runFor(e.target);});},{threshold:0.2});
+function register(){
+    rootDoc.querySelectorAll('.animate-number,.gauge-semi-fill[data-target],.prog-fill[data-target]').forEach(el=>{
+        if(el.matches('.animate-number')){const k=numberKey(el);if(el.dataset.animKey&&el.dataset.animKey!==k)delete el.dataset.animKey;}
+        else{const t=cleanNum(el.dataset.target,0,100);if(el.dataset.animKey&&el.dataset.animKey!==String(t))delete el.dataset.animKey;}
+        if(!observed.has(el)){io.observe(el);observed.add(el);}
+        if(isVisible(el)){const r=el.getBoundingClientRect(),vh=rootDoc.defaultView?.innerHeight||900;if(r.top<vh*0.92&&r.bottom>0)runFor(el);}
+    });
+}
+setTimeout(register,60);
+let _t=null;new MutationObserver(()=>{if(_t)clearTimeout(_t);_t=setTimeout(()=>setTimeout(register,60),90);}).observe(rootDoc.body,{childList:true,subtree:true});
+rootDoc.addEventListener('click',evt=>{if(evt.target?.closest('[role="tab"]'))setTimeout(()=>setTimeout(register,60),120);},true);
+</script>
+""", height=0)
 
 
 # =============================================================================
-# DATA LOADING
+# HELPERS TEXTE & COLONNES
 # =============================================================================
-def load_uploaded_csv(uploaded_file) -> pd.DataFrame:
-    raw = uploaded_file.getvalue()
-    for enc in ("utf-8-sig", "latin-1"):
-        try:
-            return pd.read_csv(io.BytesIO(raw), encoding=enc, sep=None, engine="python")
-        except Exception:
-            continue
-    return pd.DataFrame()
+def _norm(v):
+    return re.sub(r"\s+", " ", str(v).strip()).casefold()
+
+def _pp(text):
+    text = str(text).strip().lower()
+    text = unicodedata.normalize("NFD", text)
+    text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+def _find_pat(columns, patterns):
+    for col in columns:
+        nc = _pp(col)
+        for pat in patterns:
+            if re.search(pat, nc): return col
+    return None
+
+def _find_age_col(df):
+    for col in df.columns:
+        nc = _pp(col)
+        if "tranche" in nc: continue
+        if re.search(r"\bage\b", nc):
+            s = pd.to_numeric(df[col], errors="coerce")
+            if not s.dropna().empty: return col
+    return None
+
+def resolve_csp_col(df):
+    for c in ("Categorie Socio", "Catégorie Socio", "CSP"):
+        if c in df.columns: return c
+    return None
+
+def resolve_quadrant_col(df):
+    return "Karasek_quadrant_theoretical" if "Karasek_quadrant_theoretical" in df.columns else None
 
 
-def apply_filters(df, dir_val, csp_val, genre_val, age_range):
-    out   = df.copy()
-    t_all = T.get(st.session_state.get("lang", "fr"), {}).get("all_option", "Tous")
-    if "Direction" in out.columns and dir_val and dir_val != t_all:
-        dir_norm = out["Direction"].astype(str).map(_norm_text)
-        selected = _norm_text(dir_val)
-        mask = dir_norm == selected
-        if not mask.any():
-            mask = dir_norm.str.contains(selected, regex=False)
+# =============================================================================
+# PREPROCESSING & SCORING
+# =============================================================================
+def enrich_sociodem(df):
+    df = df.copy(); cols = list(df.columns)
+    age_col = _find_age_col(df)
+    if age_col and "Tranche_age" not in df.columns:
+        age_num = pd.to_numeric(df[age_col], errors="coerce")
+        df["Tranche_age"] = pd.cut(age_num, bins=[0,30,40,50,np.inf],
+                                labels=["20-30 ans","31-40 ans","41-50 ans","51 ans et plus"], right=True)
+    anc_col = _find_pat(cols, [r"anciennet"])
+    if anc_col and "Tranche_anciennete" not in df.columns:
+        anc_num = pd.to_numeric(df[anc_col], errors="coerce")
+        df["Tranche_anciennete"] = pd.cut(anc_num, bins=[-1,2,5,10,20,np.inf],
+                                        labels=["0-2 ans","3-5 ans","6-10 ans","11-20 ans","21 ans et +"])
+    poids_col  = _find_pat(cols, [r"\bpoids\b"])
+    taille_col = _find_pat(cols, [r"\btaille\b"])
+    if poids_col and taille_col:
+        poids  = pd.to_numeric(df[poids_col],  errors="coerce")
+        taille = pd.to_numeric(df[taille_col], errors="coerce")
+        if not taille[taille>0].empty and float(taille[taille>0].median()) > 3:
+            taille = taille / 100.0
+        imc = (poids / taille**2).replace([np.inf,-np.inf], np.nan)
+        df["IMC"] = imc
+        df["Categorie_IMC"] = pd.cut(imc, bins=[0,18.5,25,30,200],
+                                    labels=["Insuffisance pondérale","Corpulence normale","Surpoids","Obésité"],
+                                    include_lowest=True)
+        # Correction DTypePromotionError : on s'assure que le résultat peut contenir du texte et des NaN
+        df["IMC_binaire"] = np.where(
+            df["Categorie_IMC"].isin(["Insuffisance pondérale", "Corpulence normale"]), 
+            "Normal",
+            np.where(df["Categorie_IMC"].isna(), None, "Surpoids/Obésité")
+        )
+        # Optionnel : convertir None en np.nan après coup si nécessaire, 
+        # mais pour Streamlit/Pandas, None ou np.nan dans une colonne d'objets fonctionne très bien.
+    return df
+
+
+def clean_pii(df):
+    out = df.copy(); ops = []
+    PII = [r"\bnom\b",r"\bprenom",r"\be[- ]?mail\b",r"\bmail\b",r"\bcourriel\b",
+        r"\btelephone\b",r"\btel\b",r"\bphone\b",r"\bcommentaire",r"\bobservation",r"\bremarque",r"\bnumero\b"]
+    dropped = []
+    for col in list(out.columns):
+        if any(re.search(p, _pp(col)) for p in PII) or re.match(r"^#\s*$|^unnamed", str(col).strip(), re.I):
+            out = out.drop(columns=[col]); dropped.append(str(col))
+    if dropped: ops.append(f"Colonnes PII supprimées ({len(dropped)}): " + ", ".join(dropped))
+    miss = out.isna().mean(); to_drop = miss[miss>0.5].index.tolist()
+    if to_drop:
+        out = out.drop(columns=to_drop)
+        ops.append("Colonnes >50% manquants supprimées: " + ", ".join(str(c) for c in to_drop))
+    log = "Nettoyage appliqué:\n- " + "\n- ".join(ops) if ops else "Aucune opération appliquée."
+    return out, log
+
+
+def compute_group_score(df, suffix, multiplier=1):
+    cols = [c for c in df.columns if c.endswith(f"_{suffix}")]
+    if not cols: return pd.Series(np.nan, index=df.index, name=f"{suffix}_score")
+    ssum = df[cols].sum(axis=1, skipna=True); n_ans = df[cols].notna().sum(axis=1)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        score = ssum / n_ans.replace(0, np.nan) * len(cols) * multiplier
+    return score.where(n_ans>0, np.nan).rename(f"{suffix}_score")
+
+
+def _fuzzy_rename(df):
+    """Rename question columns to Q-codes using normalized text matching (tolerant to apostrophe variants)."""
+    import unicodedata, re
+    def _norm_q(text):
+        t = unicodedata.normalize("NFKD", str(text))
+        t = "".join(ch for ch in t if not unicodedata.combining(ch))
+        t = t.lower().strip()
+        t = re.sub(r"[\u2018\u2019\u201a\u201b\u2032\u0060]", "'", t)  # normalize apostrophes
+        t = re.sub(r"[\s]+", " ", t)
+        return t
+
+    norm_map = {_norm_q(k): v for k, v in RENAME_MAPPING.items()}
+    rename = {}
+    for col in df.columns:
+        nc = _norm_q(col)
+        if nc in norm_map:
+            rename[col] = norm_map[nc]
+    return df.rename(columns=rename) if rename else df
+
+
+def build_karasek_scores(df):
+    df_out = df.copy()
+    # Robust rename using normalized text
+    df_out = _fuzzy_rename(df_out)
+    # Likert cleaning
+    lk = [c for c in df_out.columns if re.match(r"Q\d+_(comp|auto|dem|sup|col|rec|equ|cult|adq_resources|adq_role|sat)$", c)]
+    for col in lk:
+        s = pd.to_numeric(df_out[col], errors="coerce")
+        df_out[col] = s.where(s.between(LIKERT_MIN, LIKERT_MAX))
+    # Inversion
+    avail = [c for c in INVERT_ITEMS if c in df_out.columns]
+    if avail: df_out[avail] = (LIKERT_MIN + LIKERT_MAX) - df_out[avail]
+    # Karasek sub-scores: compute from items if available, else keep existing
+    for g, mult in SCORE_MULTIPLIERS.items():
+        col_name = f"{g}_score"
+        computed = compute_group_score(df_out, g, multiplier=mult)
+        if computed.notna().any():
+            df_out[col_name] = computed
+        elif col_name not in df_out.columns:
+            df_out[col_name] = np.nan
+        # else: pre-existing column kept as-is
+    # Composite Karasek scores
+    comp_cols = [c for c in ["comp_score","auto_score"] if c in df_out.columns]
+    ss_cols   = [c for c in ["sup_score","col_score"]   if c in df_out.columns]
+    if "Lat_score" not in df_out.columns or df_out["Lat_score"].isna().all():
+        df_out["Lat_score"] = sum(df_out[c] for c in comp_cols) if comp_cols else np.nan
+    if "Dem_score" not in df_out.columns or df_out["Dem_score"].isna().all():
+        df_out["Dem_score"] = df_out.get("dem_score", pd.Series(np.nan, index=df_out.index))
+    if "SS_score" not in df_out.columns or df_out["SS_score"].isna().all():
+        df_out["SS_score"] = sum(df_out[c] for c in ss_cols) if ss_cols else np.nan
+    # RH scores: compute from items if available, else keep existing
+    for g in RH_SCORE_GROUPS:
+        col_name = f"{g}_score"
+        computed = compute_group_score(df_out, g, multiplier=1)
+        if computed.notna().any():
+            df_out[col_name] = computed
+        elif col_name not in df_out.columns:
+            df_out[col_name] = np.nan
+        # else: pre-existing column kept as-is
+    return df_out
+
+def classify_karasek(df):
+    """Seuil théorique uniquement — point médian de l'échelle (non clinique)."""
+    df_out = df.copy()
+    if any(c not in df_out.columns for c in ["Dem_score","Lat_score","SS_score"]):
+        return df_out
+    DT, LT, ST = THRESHOLDS["Dem_score"], THRESHOLDS["Lat_score"], THRESHOLDS["SS_score"]
+    df_out["Karasek_quadrant_theoretical"] = np.select(
+        [(df_out["Lat_score"]>=LT)&(df_out["Dem_score"]>=DT),
+        (df_out["Lat_score"]>=LT)&(df_out["Dem_score"]< DT),
+        (df_out["Lat_score"]< LT)&(df_out["Dem_score"]>=DT)],
+        ["Actif","Detendu","Tendu"], default="Passif")
+    df_out["Job_strain_theoretical"]  = np.where((df_out["Dem_score"]>=DT)&(df_out["Lat_score"]<LT), "Présent","Absent")
+    df_out["Iso_strain_theoretical"]  = np.where((df_out["Dem_score"]>=DT)&(df_out["SS_score"]<ST),  "Présent","Absent")
+    for col, thresh in THRESHOLDS.items():
+        if col in df_out.columns:
+            df_out[f"{col}_theo_cat"] = np.where(df_out[col].isna(), "Non renseigné",
+                                                np.where(df_out[col]<=thresh, "Faible","Élevé"))
+    return df_out
+
+
+# =============================================================================
+# DATA LOADER
+# =============================================================================
+@st.cache_data(show_spinner=False)
+def load_raw_from_bytes(file_bytes, file_name):
+    buf = io.BytesIO(file_bytes)
+    if file_name.lower().endswith(".csv"):
+        try:    df = pd.read_csv(buf, sep=None, engine="python", encoding="utf-8-sig")
+        except: buf.seek(0); df = pd.read_csv(buf, sep=None, engine="python", encoding="latin-1")
+    else:
+        df = pd.read_excel(buf)
+    df.columns = [str(c).strip() for c in df.columns]
+    return enrich_sociodem(df)
+
+
+@st.cache_data(show_spinner=False)
+def load_scored_from_bytes(file_bytes, file_name, _version=3):
+    df = load_raw_from_bytes(file_bytes, file_name)
+    df = build_karasek_scores(df)
+    return classify_karasek(df)
+
+
+# =============================================================================
+# FILTRES SIDEBAR
+# =============================================================================
+def _clean_opts(series):
+    out = {}
+    for raw in series.dropna().astype(str):
+        c = re.sub(r"\s+", " ", raw.strip())
+        if c: out.setdefault(_norm(c), c)
+    return sorted(out.values(), key=_norm)
+
+
+def render_sidebar(df_raw):
+    """Renvoie (df_raw filtré, df_scored filtré)."""
+    with st.sidebar:
+        st.markdown("""
+        <div style="font-family:'Fraunces',serif;font-size:1.15rem;font-style:italic;
+                    color:#0F2340;font-weight:400;margin-bottom:1.2rem;padding-bottom:0.6rem;
+                    border-bottom:2px solid #E4F0FB;">Filtres</div>""", unsafe_allow_html=True)
+
+        ALL = "Tous"
+        dirs = [ALL] + (_clean_opts(df_raw["Direction"]) if "Direction" in df_raw.columns else [])
+        if st.session_state.get("sb_dir") not in dirs: st.session_state["sb_dir"] = ALL
+        sel_dir = st.selectbox("Direction", dirs, key="sb_dir")
+
+        dep = df_raw
+        if "Direction" in df_raw.columns and sel_dir != ALL:
+            mask = df_raw["Direction"].astype(str).map(_norm) == _norm(sel_dir)
+            if not mask.any(): mask = df_raw["Direction"].astype(str).map(_norm).str.contains(_norm(sel_dir), regex=False)
+            dep = df_raw[mask]
+
+        csp_c = resolve_csp_col(df_raw)
+        csps  = [ALL] + (_clean_opts(dep[csp_c]) if csp_c else [])
+        if st.session_state.get("sb_csp") not in csps: st.session_state["sb_csp"] = ALL
+        sel_csp = st.selectbox("Catégorie socio", csps, key="sb_csp")
+
+        genres = [ALL] + (_clean_opts(dep["Genre"]) if "Genre" in dep.columns else [])
+        if st.session_state.get("sb_genre") not in genres: st.session_state["sb_genre"] = ALL
+        sel_genre = st.selectbox("Genre", genres, key="sb_genre")
+
+        age_s = pd.to_numeric(df_raw["Age"], errors="coerce").dropna() if "Age" in df_raw.columns else pd.Series(dtype=float)
+        sel_age = None
+        if not age_s.empty:
+            ab = (int(np.floor(age_s.min())), int(np.ceil(age_s.max())))
+            cur = st.session_state.get("sb_age", ab)
+            if not isinstance(cur, tuple): cur = ab
+            safe_val = (max(ab[0], int(cur[0])), min(ab[1], int(cur[1])))
+            sel_age = st.slider("Tranche d'âge", min_value=ab[0], max_value=ab[1], value=safe_val, key="sb_age")
+
+        st.markdown("<hr>", unsafe_allow_html=True)
+        if st.button("↺ Réinitialiser", key="sb_reset", use_container_width=True):
+            for k in ["sb_dir","sb_csp","sb_genre","sb_age"]: st.session_state.pop(k, None)
+            st.rerun()
+
+    # Application
+    out = df_raw.copy()
+    if "Direction" in out.columns and sel_dir != ALL:
+        mask = out["Direction"].astype(str).map(_norm) == _norm(sel_dir)
+        if not mask.any(): mask = out["Direction"].astype(str).map(_norm).str.contains(_norm(sel_dir), regex=False)
         out = out[mask]
-    csp_col = resolve_csp_col(out)
-    if csp_col and csp_val and csp_val != t_all:
-        out = out[out[csp_col].astype(str).map(_norm_text) == _norm_text(csp_val)]
-    if "Genre" in out.columns and genre_val and genre_val != t_all:
-        out = out[out["Genre"].astype(str).map(_norm_text) == _norm_text(genre_val)]
-    if "Age" in out.columns and age_range:
+    if csp_c and sel_csp != ALL:
+        out = out[out[csp_c].astype(str).map(_norm) == _norm(sel_csp)]
+    if "Genre" in out.columns and sel_genre != ALL:
+        out = out[out["Genre"].astype(str).map(_norm) == _norm(sel_genre)]
+    if sel_age and "Age" in out.columns:
         ages = pd.to_numeric(out["Age"], errors="coerce")
-        out  = out[(ages >= age_range[0]) & (ages <= age_range[1])]
+        out = out[(ages >= sel_age[0]) & (ages <= sel_age[1])]
     return out
-
-
-def pct_category(df, col, val):
-    if not col or col not in df.columns:
-        return 0.0
-    valid = df[col].dropna()
-    return float((valid == val).sum() / len(valid) * 100) if len(valid) > 0 else 0.0
-
-
-def get_pct_high(df, score_col):
-    if score_col in {"adq_resources_score", "adq_role_score"}:
-        if score_col in THRESHOLDS and score_col in df.columns:
-            valid = pd.to_numeric(df[score_col], errors="coerce").dropna()
-            if len(valid) > 0:
-                return float((valid > THRESHOLDS[score_col]).sum() / len(valid) * 100)
-    cat_col = f"{score_col}_theo_cat"
-    if cat_col in df.columns:
-        valid = df[cat_col].dropna()
-        if len(valid) > 0:
-            return float(valid.isin(["Eleve", "Élevé", "Elevé", "High"]).sum() / len(valid) * 100)
-    if score_col in THRESHOLDS and score_col in df.columns:
-        valid = pd.to_numeric(df[score_col], errors="coerce").dropna()
-        if len(valid) > 0:
-            return float((valid > THRESHOLDS[score_col]).sum() / len(valid) * 100)
-    return 0.0
-
-
-def get_high_stats(df, score_col):
-    if score_col in {"adq_resources_score", "adq_role_score"} and score_col in THRESHOLDS and score_col in df.columns:
-        valid = pd.to_numeric(df[score_col], errors="coerce").dropna()
-        if len(valid) > 0:
-            high_n = int((valid > THRESHOLDS[score_col]).sum())
-            return float(high_n / len(valid) * 100), high_n, int(len(valid))
-    cat_col = f"{score_col}_theo_cat"
-    if cat_col in df.columns:
-        valid = df[cat_col].dropna()
-        if len(valid) > 0:
-            high_n = int(valid.isin(["Eleve", "Élevé", "Elevé", "High"]).sum())
-            return float(high_n / len(valid) * 100), high_n, int(len(valid))
-    if score_col in THRESHOLDS and score_col in df.columns:
-        valid = pd.to_numeric(df[score_col], errors="coerce").dropna()
-        if len(valid) > 0:
-            high_n = int((valid > THRESHOLDS[score_col]).sum())
-            return float(high_n / len(valid) * 100), high_n, int(len(valid))
-    return 0.0, 0, 0
-
-
-# =============================================================================
-# PLOTLY HELPERS
-# =============================================================================
-def plotly_layout(fig, title="", height=None):
-    upd = dict(
-        plot_bgcolor="#FAFCFF", paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Plus Jakarta Sans, sans-serif", color="#0F2340", size=12),
-        title=dict(text=title, font=dict(family="Fraunces, serif", size=14, color="#0F2340"), x=0.02),
-        xaxis=dict(showgrid=True, gridcolor="#EDF5FD", gridwidth=1, showline=True,
-                   linecolor="#D6E8F7", zeroline=False, tickfont=dict(color="#6B88A8", size=11)),
-        yaxis=dict(showgrid=True, gridcolor="#EDF5FD", gridwidth=1, showline=False,
-                   zeroline=False, tickfont=dict(color="#6B88A8", size=11)),
-        legend=dict(bgcolor="rgba(255,255,255,0.95)", bordercolor="#D6E8F7",
-                    borderwidth=1, font=dict(color="#0F2340", size=11)),
-        margin=dict(l=40, r=20, t=50, b=40),
-    )
-    if height:
-        upd["height"] = height
-    fig.update_layout(**upd)
-    return fig
-
-
-def make_barplot(df, col, lang):
-    counts = df[col].value_counts().reset_index()
-    counts.columns = [col, "n"]
-    counts["pct"] = (counts["n"] / counts["n"].sum() * 100).round(1)
-    palette = ["#38A3E8", "#F97316", "#22C55E", "#EF4444", "#A78BFA", "#06B6D4", "#FB923C", "#84CC16"]
-    fig = go.Figure()
-    for i, row in counts.iterrows():
-        fig.add_trace(go.Bar(
-            y=[row[col]], x=[row["pct"]], orientation="h",
-            marker_color=palette[i % len(palette)],
-            marker=dict(opacity=0.9, line=dict(width=0)),
-            text=f"{row['pct']}%  ({row['n']})", textposition="outside",
-            textfont=dict(color="#6B88A8", size=11, family="Plus Jakarta Sans"),
-            showlegend=False,
-        ))
-    fig = plotly_layout(fig, height=max(250, len(counts) * 55 + 80))
-    fig.update_xaxes(range=[0, 130], title_text=T[lang]["pct_label"])
-    return fig
-
-
-def make_stacked_bar(df, x_col, hue_col, lang):
-    if not x_col or not hue_col:
-        return None
-    if x_col not in df.columns or hue_col not in df.columns:
-        return None
-    tmp = df[[x_col, hue_col]].dropna()
-    if tmp.empty:
-        return None
-    ct  = pd.crosstab(tmp[x_col], tmp[hue_col])
-    pct = ct.div(ct.sum(axis=1), axis=0) * 100
-    binary_map = {
-        "Eleve": "#22C55E", "Élevé": "#22C55E", "Faible": "#EF4444",
-        "High": "#22C55E", "Low": "#EF4444", "Présent": "#EF4444", "Absent": "#22C55E",
-    }
-    generic = ["#38A3E8", "#F97316", "#22C55E", "#EF4444", "#A78BFA", "#06B6D4"]
-    def get_color(cat, idx):
-        if cat in KARASEK_COLORS: return KARASEK_COLORS[cat]
-        if cat in binary_map:     return binary_map[cat]
-        return generic[idx % len(generic)]
-    fig = go.Figure()
-    for i, cat in enumerate(pct.columns):
-        vals, ns = pct[cat].values, ct[cat].values
-        texts = [f"{v:.1f}%  ({n})" if v >= 6 else "" for v, n in zip(vals, ns)]
-        fig.add_trace(go.Bar(
-            name=str(cat), y=list(pct.index), x=vals, orientation="h",
-            marker_color=get_color(str(cat), i), marker=dict(opacity=0.9, line=dict(width=0)),
-            text=texts, textposition="inside", insidetextanchor="middle",
-            textfont=dict(color="white", size=11, family="Plus Jakarta Sans"),
-        ))
-    fig = plotly_layout(fig, height=max(280, len(pct.index) * 55 + 100))
-    fig.update_layout(barmode="stack", xaxis=dict(range=[0, 100], title_text=T[lang]["pct_label"]))
-    return fig
-
-
-def make_radar(scores, labels, lang):
-    values = [scores.get(l, 0) for l in labels]
-    vc, lc = values + [values[0]], labels + [labels[0]]
-    fig = go.Figure()
-    fig.add_trace(go.Scatterpolar(
-        r=[50] * (len(labels) + 1), theta=lc, fill="toself",
-        fillcolor="rgba(249,115,22,0.05)",
-        line=dict(color="rgba(249,115,22,0.4)", dash="dot", width=1.5),
-        name=T[lang]["radar_ref"], hoverinfo="skip",
-    ))
-    fig.add_trace(go.Scatterpolar(
-        r=vc, theta=lc, fill="toself", fillcolor="rgba(56,163,232,0.12)",
-        line=dict(color="#38A3E8", width=2.5),
-        marker=dict(color="#38A3E8", size=7, line=dict(color="#FFFFFF", width=2)),
-        name=T[lang]["pct_satisfied"],
-        hovertemplate="<b>%{theta}</b><br>%{r:.1f}%<extra></extra>",
-    ))
-    fig.update_layout(
-        polar=dict(
-            bgcolor="#FAFCFF",
-            angularaxis=dict(tickfont=dict(color="#0F2340", size=10, family="Plus Jakarta Sans"),
-                             linecolor="#D6E8F7", gridcolor="#EDF5FD"),
-            radialaxis=dict(visible=True, range=[0, 100], tickfont=dict(color="#6B88A8", size=9),
-                            gridcolor="#EDF5FD", linecolor="#D6E8F7", ticksuffix="%"),
-        ),
-        paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Plus Jakarta Sans", color="#0F2340"),
-        legend=dict(bgcolor="rgba(255,255,255,0.95)", bordercolor="#D6E8F7",
-                    borderwidth=1, font=dict(color="#0F2340", size=11), x=0.75, y=1.1),
-        height=500, margin=dict(l=60, r=60, t=40, b=40),
-    )
-    return fig
 
 
 # =============================================================================
@@ -1179,647 +616,537 @@ def make_radar(scores, labels, lang):
 def section_title(text):
     st.markdown(f'<div class="section-title">{text}</div>', unsafe_allow_html=True)
 
+def svg_icon(path_d, bg, fg):
+    return (f'<span class="kpi-icon" style="background:{bg};color:{fg};">'
+            f'<svg viewBox="0 0 24 24" width="17" height="17" fill="none">'
+            f'<path d="{path_d}" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>'
+            f'</svg></span>')
 
-def kpi_icon_svg(path_d, bg, fg):
-    return (
-        f'<span class="kpi-icon" style="background:{bg};color:{fg};">'
-        f'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" xmlns="http://www.w3.org/2000/svg">'
-        f'<path d="{path_d}" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>'
-        f'</svg></span>'
-    )
+def html_kpi(value, label, suffix="", prefix="", decimals=0, subtitle="", icon=""):
+    num = float(pd.to_numeric(pd.Series([value]), errors="coerce").iloc[0] or 0)
+    rend = f"{num:.{decimals}f}" if decimals > 0 else str(int(round(num)))
+    sub  = f'<div style="margin-top:0.4rem;font-size:0.78rem;font-weight:600;color:#4E6A88;">{subtitle}</div>' if subtitle else ""
+    ico  = icon if str(icon).strip().startswith("<") else ""
+    return f"""<div class="kpi-card">{ico}<span class="kpi-label">{label}</span>
+    <div class="kpi-value animate-number" data-target="{num}" data-suffix="{suffix}" data-prefix="{prefix}" data-decimals="{decimals}">{prefix}{rend}{suffix}</div>{sub}</div>"""
 
+def html_ls_n(pct, n, label):
+    num = float(pct) if not pd.isna(pct) else 0.0
+    col = "#22C55E" if num < 35 else "#EF4444" if num > 60 else "#F97316"
+    return f"""<div class="ls-card" style="border-top:3px solid {col};">
+    <span class="kpi-label">{label}</span>
+    <div class="kpi-value animate-number" style="color:{col};font-size:1.8rem;" data-target="{int(round(num))}" data-suffix="%" data-prefix="" data-decimals="0">{int(round(num))}%</div>
+    <div style="margin-top:0.3rem;font-size:0.78rem;font-weight:600;color:#4E6A88;">n = {int(n)}</div></div>"""
 
-def html_kpi_card(value, label, suffix="", prefix="", decimals=0, subtitle="", icon=""):
-    num = pd.to_numeric(pd.Series([value]), errors="coerce").iloc[0]
-    num = 0.0 if pd.isna(num) else float(num)
-    rendered   = f"{num:.{decimals}f}" if decimals > 0 else str(int(round(num)))
-    sub_html   = f'<div style="margin-top:0.4rem;font-size:0.78rem;font-weight:600;color:#4E6A88;">{subtitle}</div>' if subtitle else ""
-    icon_html  = icon if str(icon).strip().startswith("<") else ""
-    return f"""
-    <div class="kpi-card">
-        {icon_html}
-        <span class="kpi-label">{label}</span>
-        <div class="kpi-value animate-number"
-             data-target="{num}" data-suffix="{suffix}" data-prefix="{prefix}" data-decimals="{decimals}">{prefix}{rendered}{suffix}</div>
-        {sub_html}
-    </div>"""
-
-
-def html_lifestyle_card(value, label, suffix="%"):
-    num   = pd.to_numeric(pd.Series([value]), errors="coerce").iloc[0]
-    num   = 0.0 if pd.isna(num) else float(num)
-    disp  = int(round(num))
-    color = "#22C55E" if num < 35 else "#EF4444" if num > 60 else "#F97316"
-    return f"""
-    <div class="ls-card" style="border-top: 3px solid {color};">
-        <span class="kpi-label">{label}</span>
-        <div class="kpi-value animate-number" style="color:{color};font-size:1.8rem;"
-            data-target="{disp}" data-suffix="{suffix}" data-prefix="" data-decimals="0">{disp}{suffix}</div>
-    </div>"""
-
-
-def html_gauge(value, label, sublabel, is_favorable):
-    target = pd.to_numeric(pd.Series([value]), errors="coerce").iloc[0]
-    target = 0.0 if pd.isna(target) else max(0.0, min(100.0, float(target)))
-    disp   = int(round(target))
-    if target > 50:
-        color, badge_cls, badge_txt = "#22C55E", "good", "Élevé"
+def html_gauge(value, label, sublabel, inverted=False):
+    """inverted=True : score élevé = risque (ex: Demande psychologique élevée = mauvais)."""
+    t = max(0.0, min(100.0, float(value) if not pd.isna(value) else 0.0))
+    d = int(round(t))
+    if inverted:
+        col, bcls, btxt = ("#EF4444","alert","Élevée") if t>50 else ("#22C55E","good","Modérée")
     else:
-        color, badge_cls, badge_txt = "#EF4444", "alert", "Faible"
-    return f"""
-    <div class="gauge-card">
-        <div class="gauge-semi-wrap">
-            <div class="gauge-semi-bg"></div>
-            <div class="gauge-semi-fill" style="--gauge-color:{color}; --g:{target*1.8:.1f}deg;" data-target="{disp}"></div>
-            <div class="gauge-semi-inner"></div>
-            <div class="gauge-semi-tick"></div>
-        </div>
-        <div class="gauge-value">
-            <span class="gauge-counter" style="color:{color};">{disp}</span><span class="gauge-pct">%</span>
-        </div>
-        <div class="gauge-label">{label}</div>
-        <div class="gauge-sublabel">{sublabel}</div>
-        <span class="gauge-badge {badge_cls}">{badge_txt}</span>
-    </div>"""
+        col, bcls, btxt = ("#22C55E","good","Élevé") if t>50 else ("#EF4444","alert","Faible")
+    return f"""<div class="gauge-card">
+    <div class="gauge-semi-wrap">
+        <div class="gauge-semi-bg"></div>
+        <div class="gauge-semi-fill" style="--gauge-color:{col};--g:{t*1.8:.1f}deg;" data-target="{d}"></div>
+        <div class="gauge-semi-inner"></div>
+    </div>
+    <div class="gauge-value"><span class="gauge-counter" style="color:{col};">{d}</span><span class="gauge-pct">%</span></div>
+    <div class="gauge-label">{label}</div><div class="gauge-sublabel">{sublabel}</div>
+    <span class="gauge-badge {bcls}">{btxt}</span></div>"""
 
+def html_prog(label, pct, color, n=0):
+    v = max(0.0, min(100.0, float(pct) if not pd.isna(pct) else 0.0))
+    return f"""<div style="margin-bottom:1rem;">
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="font-size:0.78rem;color:#3B5878;font-family:'Plus Jakarta Sans',sans-serif;font-weight:500;">{label}</span>
+        <span style="font-size:0.82rem;font-weight:700;color:{color};font-family:'Plus Jakarta Sans',sans-serif;">{v:.0f}% ({int(n)})</span>
+    </div>
+    <div class="prog-track"><div class="prog-fill" style="background:{color};width:{v:.1f}%;" data-target="{v:.1f}"></div></div></div>"""
 
-def html_progress_row(label, pct, color, n_count=0):
-    val = pd.to_numeric(pd.Series([pct]), errors="coerce").iloc[0]
-    val = 0.0 if pd.isna(val) else max(0.0, min(100.0, float(val)))
-    return f"""
-    <div style="margin-bottom:1rem;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-            <span style="font-size:0.78rem;color:#3B5878;font-family:'Plus Jakarta Sans',sans-serif;font-weight:500;">{label}</span>
-            <span style="font-size:0.82rem;font-weight:700;color:{color};font-family:'Plus Jakarta Sans',sans-serif;">{val:.0f}% ({int(n_count)})</span>
-        </div>
-        <div class="prog-track">
-            <div class="prog-fill" style="background:{color};width:{val:.1f}%;" data-target="{val:.1f}"></div>
-        </div>
-    </div>"""
-
-
-def html_workzone_card(label, pct, n_count, color):
-    val  = pd.to_numeric(pd.Series([pct]), errors="coerce").iloc[0]
-    val  = 0.0 if pd.isna(val) else max(0.0, min(100.0, float(val)))
-    disp = int(round(val))
-    return f"""
-    <div class="workzone-card" style="border-top: 3px solid {color};">
-        <span class="kpi-label">{label}</span>
-        <div class="kpi-value animate-number" style="color:{color};font-size:1.8rem;"
-             data-target="{disp}" data-suffix="%" data-prefix="" data-decimals="0">{disp}%</div>
-        <div style="margin-top:0.35rem;font-size:0.78rem;font-weight:600;color:#4E6A88;">{int(n_count)}</div>
-    </div>"""
+def html_zone(label, pct, n, color):
+    v = max(0.0, min(100.0, float(pct) if not pd.isna(pct) else 0.0))
+    return f"""<div class="workzone-card" style="border-top:3px solid {color};">
+    <span class="kpi-label">{label}</span>
+    <div class="kpi-value animate-number" style="color:{color};font-size:1.8rem;" data-target="{int(round(v))}" data-suffix="%" data-prefix="" data-decimals="0">{int(round(v))}%</div>
+    <div style="margin-top:0.35rem;font-size:0.78rem;font-weight:600;color:#4E6A88;">{int(n)}</div></div>"""
 
 
 # =============================================================================
-# UI HELPERS
+# PLOTLY HELPERS
 # =============================================================================
-def safe_selectbox(label, options, key, on_change=None, args=()):
-    if not options:
-        st.selectbox(label, ["—"], key=f"{key}_empty", disabled=True)
-        return None
-    if key not in st.session_state or st.session_state.get(key) not in options:
-        st.session_state[key] = options[0]
-    return st.selectbox(
-        label, options=options, key=key,
-        label_visibility="collapsed", on_change=on_change, args=args,
+def _plotly_base(fig, height=None):
+    upd = dict(
+        plot_bgcolor="#FAFCFF", paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Plus Jakarta Sans, sans-serif", color="#0F2340", size=12),
+        xaxis=dict(showgrid=True, gridcolor="#EDF5FD", gridwidth=1, showline=True,
+                linecolor="#D6E8F7", zeroline=False, tickfont=dict(color="#6B88A8",size=11)),
+        yaxis=dict(showgrid=True, gridcolor="#EDF5FD", gridwidth=1, showline=False,
+                zeroline=False, tickfont=dict(color="#6B88A8",size=11)),
+        legend=dict(bgcolor="rgba(255,255,255,0.95)", bordercolor="#D6E8F7", borderwidth=1,
+                    font=dict(color="#0F2340",size=11)),
+        margin=dict(l=40,r=20,t=50,b=40),
     )
+    if height: upd["height"] = height
+    fig.update_layout(**upd)
+    return fig
 
 
-def reset_dashboard_state(all_opt, age_bounds):
-    for k in ("filter_dirs", "filter_csps", "filter_genres"):
-        st.session_state[k] = all_opt
-    if age_bounds:
-        st.session_state["filter_age_range"] = age_bounds
-    for k in [k for k in list(st.session_state.keys()) if k.startswith("sel_")]:
-        st.session_state.pop(k, None)
+def make_barplot(df, col):
+    cnt = df[col].value_counts().reset_index(); cnt.columns=[col,"n"]
+    cnt["pct"] = (cnt["n"]/cnt["n"].sum()*100).round(1)
+    pal = ["#38A3E8","#F97316","#22C55E","#EF4444","#A78BFA","#06B6D4","#FB923C","#84CC16"]
+    fig = go.Figure()
+    for i, row in cnt.iterrows():
+        fig.add_trace(go.Bar(y=[row[col]], x=[row["pct"]], orientation="h",
+            marker_color=pal[i%len(pal)], marker=dict(opacity=0.9, line=dict(width=0)),
+            text=f"{row['pct']}%  ({row['n']})", textposition="outside",
+            textfont=dict(color="#6B88A8",size=11,family="Plus Jakarta Sans"), showlegend=False))
+    _plotly_base(fig, height=max(250, len(cnt)*55+80))
+    fig.update_xaxes(range=[0,130], title_text="Pourcentage (%)")
+    return fig
 
 
-def on_direction_change(all_opt):
-    st.session_state["filter_csps"]  = all_opt
-    st.session_state["filter_genres"] = all_opt
+def make_stacked(df, x_col, hue_col):
+    if x_col not in df.columns or hue_col not in df.columns: return None
+    tmp = df[[x_col,hue_col]].dropna()
+    if tmp.empty: return None
+    ct  = pd.crosstab(tmp[x_col], tmp[hue_col])
+    pct = ct.div(ct.sum(axis=1), axis=0)*100
+    bmap = {"Eleve":"#22C55E","Élevé":"#22C55E","Faible":"#EF4444","Présent":"#EF4444","Absent":"#22C55E"}
+    gen  = ["#38A3E8","#F97316","#22C55E","#EF4444","#A78BFA","#06B6D4"]
+    def gc(cat,idx):
+        if cat in KARASEK_COLORS: return KARASEK_COLORS[cat]
+        if cat in bmap:           return bmap[cat]
+        return gen[idx%len(gen)]
+    fig = go.Figure()
+    for i, cat in enumerate(pct.columns):
+        vals, ns = pct[cat].values, ct[cat].values
+        txts = [f"{v:.1f}%  ({n})" if v>=6 else "" for v,n in zip(vals,ns)]
+        fig.add_trace(go.Bar(name=str(cat), y=list(pct.index), x=vals, orientation="h",
+            marker_color=gc(str(cat),i), marker=dict(opacity=0.9,line=dict(width=0)),
+            text=txts, textposition="inside", insidetextanchor="middle",
+            textfont=dict(color="white",size=11,family="Plus Jakarta Sans")))
+    _plotly_base(fig, height=max(280, len(pct.index)*55+100))
+    fig.update_layout(barmode="stack", xaxis=dict(range=[0,100],title_text="Pourcentage (%)"))
+    return fig
 
 
-# =============================================================================
-# HEADER + FILTERS
-# =============================================================================
-def render_header(lang):
-    h_left, h_right = st.columns([9, 1])
-    with h_left:
-        st.markdown(f"""
-        <div class="hero-band">
-            <div class="hero-inner">
-                <div class="hero-wordmark">
-                    <h1>Karasek <span>Dashboard</span></h1>
-                    <div class="hero-subtitle">{T[lang]['app_subtitle']}</div>
-                </div>
-                <div class="hero-chip">Tableau de bord interactif</div>
-            </div>
-        </div>""", unsafe_allow_html=True)
-    with h_right:
-        st.write("")
-        st.write("")
-        if st.button(T[lang]["lang_toggle"], key="lang_btn", use_container_width=True):
-            new_lang = "en" if lang == "fr" else "fr"
-            for k in [k for k in list(st.session_state.keys()) if k.startswith("sel_")]:
-                del st.session_state[k]
-            st.session_state["lang"] = new_lang
-            st.rerun()
+def make_radar(scores, labels):
+    vals = [scores.get(l,0) for l in labels]
+    vc = vals+[vals[0]]; lc = labels+[labels[0]]
+    fig = go.Figure()
+    fig.add_trace(go.Scatterpolar(r=[50]*(len(labels)+1), theta=lc, fill="toself",
+        fillcolor="rgba(249,115,22,0.05)", line=dict(color="rgba(249,115,22,0.4)",dash="dot",width=1.5),
+        name="Référence 50%", hoverinfo="skip"))
+    fig.add_trace(go.Scatterpolar(r=vc, theta=lc, fill="toself",
+        fillcolor="rgba(56,163,232,0.12)", line=dict(color="#38A3E8",width=2.5),
+        marker=dict(color="#38A3E8",size=7,line=dict(color="#FFFFFF",width=2)),
+        name="Niveau élevé", hovertemplate="<b>%{theta}</b><br>%{r:.1f}%<extra></extra>"))
+    fig.update_layout(
+        polar=dict(bgcolor="#FAFCFF",
+            angularaxis=dict(tickfont=dict(color="#0F2340",size=10,family="Plus Jakarta Sans"),linecolor="#D6E8F7",gridcolor="#EDF5FD"),
+            radialaxis=dict(visible=True,range=[0,100],tickfont=dict(color="#6B88A8",size=9),gridcolor="#EDF5FD",linecolor="#D6E8F7",ticksuffix="%")),
+        paper_bgcolor="rgba(0,0,0,0)", font=dict(family="Plus Jakarta Sans",color="#0F2340"),
+        legend=dict(bgcolor="rgba(255,255,255,0.95)",bordercolor="#D6E8F7",borderwidth=1,font=dict(color="#0F2340",size=11),x=0.75,y=1.1),
+        height=500, margin=dict(l=60,r=60,t=40,b=40))
+    return fig
 
 
-def render_top_filters(df_raw, lang):
-    t       = T[lang]
-    all_opt = t["all_option"]
-
-    def cleaned_options(series):
-        out = {}
-        for raw in series.dropna().astype(str):
-            cleaned = re.sub(r"\s+", " ", raw.strip())
-            if not cleaned:
-                continue
-            out.setdefault(_norm_text(cleaned), cleaned)
-        return sorted(out.values(), key=_norm_text)
-
-    dirs        = [all_opt] + (cleaned_options(df_raw["Direction"]) if "Direction" in df_raw.columns else [])
-    current_dir = st.session_state.get("filter_dirs", all_opt)
-    if current_dir not in dirs:
-        current_dir = all_opt
-        st.session_state["filter_dirs"] = all_opt
-
-    dep_df = df_raw
-    if "Direction" in df_raw.columns and current_dir != all_opt:
-        dep_df = df_raw[df_raw["Direction"].astype(str).map(_norm_text) == _norm_text(current_dir)]
-
-    csp_c  = resolve_csp_col(df_raw)
-    csps   = [all_opt] + (cleaned_options(dep_df[csp_c]) if csp_c else [])
-    genres = [all_opt] + (cleaned_options(dep_df["Genre"]) if "Genre" in dep_df.columns else [])
-
-    age_series = pd.to_numeric(df_raw["Age"], errors="coerce").dropna() if "Age" in df_raw.columns else pd.Series(dtype=float)
-    age_bounds = None
-    if not age_series.empty:
-        age_bounds = (int(np.floor(age_series.min())), int(np.ceil(age_series.max())))
-        if "filter_age_range" not in st.session_state or not isinstance(st.session_state.get("filter_age_range"), tuple):
-            st.session_state["filter_age_range"] = age_bounds
-        else:
-            cur_lo, cur_hi = st.session_state["filter_age_range"]
-            st.session_state["filter_age_range"] = (
-                max(age_bounds[0], int(cur_lo)), min(age_bounds[1], int(cur_hi))
-            )
-
-    with st.container(border=True):
-        f1, f2, f3, f4, f5 = st.columns([2.4, 2.4, 1.8, 3.0, 1.6])
-        with f1:
-            st.markdown(f'<span class="filter-label">{t["filter_direction"]}</span>', unsafe_allow_html=True)
-            sel_dirs = safe_selectbox("", dirs, key="filter_dirs", on_change=on_direction_change, args=(all_opt,))
-        with f2:
-            st.markdown(f'<span class="filter-label">{t["filter_csp"]}</span>', unsafe_allow_html=True)
-            sel_csps = safe_selectbox("", csps, key="filter_csps")
-        with f3:
-            st.markdown(f'<span class="filter-label">{t["filter_genre"]}</span>', unsafe_allow_html=True)
-            sel_genres = safe_selectbox("", genres, key="filter_genres")
-        with f4:
-            st.markdown(f'<span class="filter-label">{t["filter_age"]}</span>', unsafe_allow_html=True)
-            if age_bounds:
-                sel_age_range = st.slider(
-                    "", min_value=age_bounds[0], max_value=age_bounds[1],
-                    value=st.session_state["filter_age_range"],
-                    key="filter_age_range", label_visibility="collapsed",
-                )
-            else:
-                st.slider("", 0, 1, (0, 1), disabled=True, label_visibility="collapsed")
-                sel_age_range = None
-        with f5:
-            st.write("")
-            st.markdown("<div style='height:0.82rem;'></div>", unsafe_allow_html=True)
-            if st.button(t["reset_btn"], key="reset_dashboard_btn", use_container_width=True,
-                         on_click=reset_dashboard_state, args=(all_opt, age_bounds)):
-                st.rerun()
-    return sel_dirs, sel_csps, sel_genres, sel_age_range
+def get_pct_high(df, score_col):
+    cat = f"{score_col}_theo_cat"
+    if cat in df.columns:
+        v = df[cat].dropna()
+        if len(v)>0: return float(v.isin(["Eleve","Élevé","Elevé","High"]).sum()/len(v)*100)
+    if score_col in THRESHOLDS and score_col in df.columns:
+        v = pd.to_numeric(df[score_col],errors="coerce").dropna()
+        if len(v)>0: return float((v>THRESHOLDS[score_col]).sum()/len(v)*100)
+    return 0.0
 
 
-# =============================================================================
-# TAB 1
-# =============================================================================
-def render_tab1(df, lang):
-    t       = T[lang]
-    total_n = len(df)
-    section_title(t["total_staff"] + (" — Données démographiques" if lang == "fr" else " — Demographics"))
-
-    genre_series = df["Genre"].astype(str).str.strip().str.lower() if "Genre" in df.columns else pd.Series(dtype=str)
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        st.markdown(html_kpi_card(
-            total_n, t["total_staff"],
-            icon=kpi_icon_svg("M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9.5 7a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a3 3 0 0 1 0 5.75",
-                "rgba(56,163,232,0.1)", "#38A3E8"),
-        ), unsafe_allow_html=True)
-    with c2:
-        n_men = int(genre_series.isin({"homme", "male", "m"}).sum()) if not genre_series.empty else 0
-        st.markdown(html_kpi_card(
-            n_men / total_n * 100 if total_n > 0 else 0, t["men"],
-            suffix="%", decimals=0, subtitle=f"{n_men}",
-            icon=kpi_icon_svg("M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4M5 21a7 7 0 0 1 14 0",
-                "rgba(56,163,232,0.1)", "#38A3E8"),
-        ), unsafe_allow_html=True)
-    with c3:
-        n_women = int(genre_series.isin({"femme", "female", "f"}).sum()) if not genre_series.empty else 0
-        st.markdown(html_kpi_card(
-            n_women / total_n * 100 if total_n > 0 else 0, t["women"],
-            suffix="%", decimals=0, subtitle=f"{n_women}",
-            icon=kpi_icon_svg("M12 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4M8 15h8l1.5 6h-11zM12 15v6",
-                "rgba(249,115,22,0.1)", "#F97316"),
-        ), unsafe_allow_html=True)
-    with c4:
-        avg_age = pd.to_numeric(df["Age"], errors="coerce").mean() if "Age" in df.columns else 0
-        st.markdown(html_kpi_card(
-            avg_age, t["avg_age"],
-            suffix=" ans" if lang == "fr" else " yrs", decimals=0,
-            icon=kpi_icon_svg("M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z",
-                "rgba(249,115,22,0.1)", "#F97316"),
-        ), unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    section_title(t["lifestyle_title"])
-    alcool_col = next((c for c in ("Consommation reguliere d\u2019alcool", "Consommation reguliere d'alcool") if c in df.columns), None)
-    c1, c2, c3, c4, c5 = st.columns(5)
-    with c1: st.markdown(html_lifestyle_card(pct_category(df, "Pratique reguliere du sport", "Non"), t["sedentarity"]), unsafe_allow_html=True)
-    with c2: st.markdown(html_lifestyle_card(pct_category(df, alcool_col, "Oui") if alcool_col else 0.0, t["alcohol"]), unsafe_allow_html=True)
-    with c3: st.markdown(html_lifestyle_card(pct_category(df, "tabagisme", "Oui"), t["tobacco"]), unsafe_allow_html=True)
-    with c4: st.markdown(html_lifestyle_card(pct_category(df, "Avez-vous une maladie chronique", "Oui"), t["chronic"]), unsafe_allow_html=True)
-    with c5: st.markdown(html_lifestyle_card(pct_category(df, "IMC_binaire", "Surpoids/Obésité"), t["overweight"]), unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    section_title(t["explore_title"])
-    csp_actual = resolve_csp_col(df) or "Categorie Socio"
-    VAR_MAP = {
-        t["var_genre"]:      "Genre",
-        t["var_age"]:        "Tranche_age",
-        t["var_anciennete"]: "Tranche_anciennete",
-        t["var_csp"]:        csp_actual,
-        t["var_imc"]:        "Categorie_IMC",
-        t["var_imc_bin"]:    "IMC_binaire",
-        t["var_direction"]:  "Direction",
-        t["var_tabac"]:      "tabagisme",
-        t["var_alcool"]:     alcool_col or "",
-        t["var_sport"]:      "Pratique reguliere du sport",
-        t["var_maladie"]:    "Avez-vous une maladie chronique",
-    }
-    CROSS_MAP = {
-        t["no_cross"]:       None,
-        t["cross_quadrant"]: resolve_quadrant_col(df),
-        t["cross_dem"]:      "Dem_score_theo_cat",
-        t["cross_lat"]:      "Lat_score_theo_cat",
-        t["cross_ss"]:       "SS_score_theo_cat",
-        t["cross_rec"]:      "rec_score_theo_cat",
-        t["cross_sat"]:      "sat_score_theo_cat",
-        t["cross_cult"]:     "cult_score_theo_cat",
-        t["cross_equ"]:      "equ_score_theo_cat",
-    }
-    available_vars  = [k for k, v in VAR_MAP.items()  if v and v in df.columns]
-    available_cross = [k for k, v in CROSS_MAP.items() if v is None or v in df.columns]
-    cc1, cc2 = st.columns(2)
-    with cc1:
-        st.markdown(f'<span class="filter-label">{t["select_variable"]}</span>', unsafe_allow_html=True)
-        sel_var = safe_selectbox(t["select_variable"], available_vars, key="sel_var_tab1")
-    with cc2:
-        st.markdown(f'<span class="filter-label">{t["cross_with"]}</span>', unsafe_allow_html=True)
-        sel_cross = safe_selectbox(t["cross_with"], available_cross, key="sel_cross_tab1")
-    real_col  = VAR_MAP.get(sel_var)    if sel_var   else None
-    cross_col = CROSS_MAP.get(sel_cross) if sel_cross else None
-    if real_col and real_col in df.columns:
-        if cross_col:
-            fig = make_stacked_bar(df, real_col, cross_col, lang)
-            if fig: st.plotly_chart(fig, use_container_width=True, key="chart_tab1_cross")
-            else:   st.info(t["no_data"])
-        else:
-            col_chart, col_table = st.columns([6, 4])
-            with col_chart:
-                st.plotly_chart(make_barplot(df, real_col, lang), use_container_width=True, key="chart_tab1_bar")
-            with col_table:
-                cnt = df[real_col].value_counts().reset_index()
-                cnt.columns = [sel_var, t["n_respondents"]]
-                cnt[t["pct"]] = (cnt[t["n_respondents"]] / cnt[t["n_respondents"]].sum() * 100).round(1)
-                st.dataframe(cnt, use_container_width=True, hide_index=True)
+def get_high_stats(df, score_col):
+    cat = f"{score_col}_theo_cat"
+    if cat in df.columns:
+        v = df[cat].dropna(); n_h = int(v.isin(["Eleve","Élevé","Elevé","High"]).sum())
+        return float(n_h/len(v)*100) if len(v)>0 else 0.0, n_h, int(len(v))
+    if score_col in df.columns:
+        v = pd.to_numeric(df[score_col],errors="coerce").dropna()
+        t = THRESHOLDS.get(score_col); n_h = int((v>t).sum()) if t is not None else 0
+        return float(n_h/len(v)*100) if len(v)>0 else 0.0, n_h, int(len(v))
+    return 0.0, 0, 0
 
 
-# =============================================================================
-# TAB 2
-# =============================================================================
-def render_tab2(df, lang):
-    t        = T[lang]
-    quad_col = resolve_quadrant_col(df)
-
-    section_title(t["stress_kpis_title"])
-    g1, g2, g3 = st.columns(3)
-    with g1: st.markdown(html_gauge(get_pct_high(df, "Lat_score"), t["autonomy"],       t["autonomy_sub"],       True),  unsafe_allow_html=True)
-    with g2: st.markdown(html_gauge(get_pct_high(df, "Dem_score"), t["workload"],       t["workload_sub"],       False), unsafe_allow_html=True)
-    with g3: st.markdown(html_gauge(get_pct_high(df, "SS_score"),  t["social_support"], t["social_support_sub"], True),  unsafe_allow_html=True)
-
-    st.markdown(
-        f'<p style="font-family:Plus Jakarta Sans,sans-serif;font-size:0.9rem;font-weight:700;'
-        f'color:#2F577F;margin:1.2rem 0 0.55rem;letter-spacing:0.06em;text-transform:uppercase;">'
-        f'{t["quadrant_pct_title"]}</p>',
-        unsafe_allow_html=True,
-    )
-    if quad_col:
-        qc1, qc2, qc3, qc4 = st.columns(4)
-        total_v    = len(df.dropna(subset=[quad_col]))
-        zone_colors = {"Tendu": "#EF4444", "Actif": "#22C55E", "Passif": "#94A3B8", "Detendu": "#38A3E8", "Détendu": "#38A3E8"}
-        aliases     = {
-            "Tendu":   ["Tendu", "Tense"],
-            "Actif":   ["Actif", "Active"],
-            "Passif":  ["Passif", "Passive"],
-            "Détendu": ["Detendu", "Détendu", "Relaxed"],
-        }
-        for raw, lbl, col in [
-            ("Tendu",   t["tense"],   qc1),
-            ("Actif",   t["active"],  qc2),
-            ("Passif",  t["passive"], qc3),
-            ("Détendu", t["relaxed"], qc4),
-        ]:
-            n = int(df[quad_col].isin(aliases.get(raw, [raw])).sum())
-            with col:
-                st.markdown(html_workzone_card(lbl, n / total_v * 100 if total_v > 0 else 0, n, zone_colors.get(raw, "#94A3B8")), unsafe_allow_html=True)
-    else:
-        st.info(t["no_data"])
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    section_title(t["mapp_title"])
-    st.markdown(
-        f'<p style="color:#4E6A88;font-size:0.98rem;margin-top:-0.3rem;line-height:1.55;">{t["mapp_subtitle"]}</p>',
-        unsafe_allow_html=True,
-    )
-    req = ["Dem_score", "Lat_score"] + ([quad_col] if quad_col else [])
-    if any(c not in df.columns for c in req):
-        st.warning(t["missing_mapp"])
-    else:
-        df_plot = df[req].dropna().copy()
-        if df_plot.empty:
-            st.info(t["no_data"])
-        else:
-            qmap = (
-                {"Actif": "Active", "Detendu": "Relaxed", "Détendu": "Relaxed", "Tendu": "Tense", "Passif": "Passive"}
-                if lang == "en" else
-                {"Actif": "Actif", "Detendu": "Détendu", "Détendu": "Détendu", "Tendu": "Tendu", "Passif": "Passif"}
-            )
-            df_plot["quad_display"] = df_plot[quad_col].astype(str).map(qmap).fillna(df_plot[quad_col].astype(str))
-            color_map = {v: KARASEK_COLORS.get(k, "#94A3B8") for k, v in qmap.items()}
-            fig_sc = px.scatter(
-                df_plot, x="Lat_score", y="Dem_score", color="quad_display",
-                color_discrete_map=color_map, opacity=0.75,
-                labels={"Lat_score": t["x_axis_mapp"], "Dem_score": t["y_axis_mapp"], "quad_display": t["hover_quad"]},
-                custom_data=["quad_display", "Lat_score", "Dem_score"],
-            )
-            fig_sc.update_traces(
-                marker=dict(size=8, line=dict(width=1, color="white")),
-                hovertemplate=f"<b>{t['hover_quad']}</b>: %{{customdata[0]}}<br>{t['hover_lat']}: %{{customdata[1]:.1f}}<br>{t['hover_dem']}: %{{customdata[2]:.1f}}<extra></extra>",
-            )
-            fig_sc.add_vline(x=60.0, line_dash="dot", line_color="rgba(249,115,22,0.45)", line_width=1.8)
-            fig_sc.add_hline(y=22.5, line_dash="dot", line_color="rgba(249,115,22,0.45)", line_width=1.8)
-            x_min, x_max = df_plot["Lat_score"].min(), df_plot["Lat_score"].max()
-            y_min, y_max = df_plot["Dem_score"].min(), df_plot["Dem_score"].max()
-            xr, yr  = x_max - x_min, y_max - y_min
-            px_, py_ = max(xr * 0.04, 0.5), max(yr * 0.04, 0.5)
-            annots = {
-                qmap["Actif"]:   (x_max - px_, y_max - py_, "right", "top"),
-                qmap["Passif"]:  (x_min + px_, y_min + py_, "left",  "bottom"),
-                qmap["Détendu"]: (x_max - px_, y_min + py_, "right", "bottom"),
-                qmap["Tendu"]:   (x_min + px_, y_max - py_, "left",  "top"),
-            }
-            for quad, (qx, qy, xa, ya) in annots.items():
-                fig_sc.add_annotation(
-                    x=qx, y=qy, text=quad.upper(), showarrow=False,
-                    font=dict(size=12, color=color_map.get(quad, "#94A3B8"), family="Plus Jakarta Sans"),
-                    opacity=0.3, xanchor=xa, yanchor=ya,
-                )
-            fig_sc = plotly_layout(fig_sc, height=500)
-            fig_sc.update_layout(
-                xaxis_title=t["x_axis_mapp"], yaxis_title=t["y_axis_mapp"],
-                legend_title_text=t["hover_quad"],
-            )
-            st.plotly_chart(fig_sc, use_container_width=True, key="chart_tab2_mapp")
-
-    DIMENSIONS = [
-        ("rec_score", t["recognition"]),   ("equ_score", t["equity"]),
-        ("cult_score", t["culture"]),       ("sat_score", t["satisfaction"]),
-        ("adq_resources_score", t["resources"]), ("sup_score", t["management_support"]),
-        ("adq_role_score", t["training"]),  ("comp_score", t["skills"]),
-    ]
-    dim_stats = {}
-    for sc, lbl in DIMENSIONS:
-        pct, n_high, _ = get_high_stats(df, sc)
-        dim_stats[lbl] = (pct, n_high)
-    dim_pcts = {lbl: v[0] for lbl, v in dim_stats.items()}
-
-    section_title(t["radar_title"])
-    with st.container(border=True):
-        st.markdown(
-            f'<p style="color:#4E6A88;font-size:0.98rem;margin:0.12rem 0 0.65rem;line-height:1.5;">{t["radar_subtitle"]}</p>',
-            unsafe_allow_html=True,
-        )
-        labels = [d[1] for d in DIMENSIONS]
-        col_radar, col_legend = st.columns([6, 4])
-        with col_radar:
-            st.plotly_chart(make_radar(dim_pcts, labels, lang), use_container_width=True, key="chart_tab2_radar")
-        with col_legend:
-            st.markdown("<br><br>", unsafe_allow_html=True)
-            bars_html = ""
-            for label, (pct, n_high) in dim_stats.items():
-                color = "#22C55E" if pct > 50 else "#EF4444"
-                bars_html += html_progress_row(label, pct, color, n_high)
-            st.markdown(bars_html, unsafe_allow_html=True)
+def _fig_to_png(fig):
+    try:
+        if hasattr(fig,"to_image"): return fig.to_image(format="png")
+        buf = io.BytesIO(); fig.savefig(buf,format="png",dpi=300,bbox_inches="tight"); buf.seek(0); return buf.getvalue()
+    except: return None
 
 
 # =============================================================================
 # MAIN
 # =============================================================================
-def main():
-    inject_css()
-    inject_animation_js()
+inject_css()
+inject_animation_js()
 
-    # ── Topbar ────────────────────────────────────────────────────────────────
+st.markdown(
+    '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">'
+    '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,400;1,9..144,600&display=swap" rel="stylesheet">',
+    unsafe_allow_html=True
+)
+
+# TOPBAR
+_col_top, _col_back = st.columns([9, 1])
+with _col_top:
     st.markdown(
-        '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">'
-        '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">',
-        unsafe_allow_html=True,
+        '<div style="display:flex;align-items:center;gap:12px;background:white;border-radius:12px;'
+        'padding:14px 24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06),'
+        '0 4px 12px rgba(30,110,79,0.08);border:1px solid #e8edf5;">'
+        '<div style="width:38px;height:38px;background:linear-gradient(135deg,#1e6e4f,#3aaa7a);'
+        'border-radius:10px;display:flex;align-items:center;justify-content:center;">'
+        '<i class="fas fa-brain" style="color:white;font-size:15px;"></i></div>'
+        '<div>'
+        '<div style="font-size:16px;font-weight:700;color:#1e293b;font-family:\'Plus Jakarta Sans\',sans-serif;">Modèle de Karasek — Demande–Contrôle–Soutien</div>'
+        '<div style="font-size:11px;color:#64748b;margin-top:1px;font-family:\'Plus Jakarta Sans\',sans-serif;">Analyse des risques psychosociaux au travail (Job Strain & Iso-Strain)</div>'
+        '</div></div>',
+        unsafe_allow_html=True
     )
-    col_top, col_back = st.columns([9, 1])
-    with col_top:
-        st.markdown(
-            '<div style="display:flex;align-items:center;gap:12px;background:white;border-radius:12px;'
-            'padding:14px 24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06),'
-            '0 4px 12px rgba(30,64,175,0.08);border:1px solid #e8edf5;">'
-            '<div style="width:38px;height:38px;background:linear-gradient(135deg,#7c3aed,#a78bfa);'
-            'border-radius:10px;display:flex;align-items:center;justify-content:center;">'
-            '<i class="fas fa-briefcase" style="color:white;font-size:15px;"></i></div>'
-            '<div>'
-            '<div style="font-size:16px;font-weight:700;color:#1e293b;">Karasek — Modèle Demande-Contrôle</div>'
-            '<div style="font-size:11px;color:#64748b;margin-top:1px;">Analyse du stress professionnel · Wave-CI</div>'
-            '</div></div>',
-            unsafe_allow_html=True,
-        )
-    with col_back:
-        st.write("")
-        st.write("")
-        if st.button("← Accueil", key="back_home_karasek", use_container_width=True):
-            st.switch_page("app.py")
+with _col_back:
+    if st.button("← Accueil", key="back_home_karasek", use_container_width=True):
+        st.switch_page("app.py")
 
-    if "lang" not in st.session_state:
-        st.session_state["lang"] = "fr"
-    lang = st.session_state["lang"]
+# UPLOAD
+uploaded_file = st.file_uploader(
+    "Charger un fichier Excel ou CSV",
+    type=["xlsx", "xls", "csv"],
+    help="Le fichier doit contenir les items Likert du questionnaire de Karasek (1–4) ou leurs libellés complets.",
+    key="karasek_uploader",
+)
+if uploaded_file is not None:
+    file_bytes = uploaded_file.read()
+    if file_bytes:
+        st.session_state["_kara_file_bytes"] = file_bytes
+        st.session_state["_kara_file_name"]  = uploaded_file.name
 
-    render_header(lang)
-    lang = st.session_state["lang"]
+if "_kara_file_bytes" not in st.session_state:
+    st.info("Veuillez charger un fichier de données (Excel ou CSV) pour démarrer l'analyse.")
+    st.stop()
 
-    # ── Sidebar import ────────────────────────────────────────────────────────
-    with st.sidebar:
-        st.header("📂 Données")
-        _kar_sidebar_up = st.file_uploader(
-            "Charger un fichier Excel ou CSV",
-            type=["xlsx", "xls", "csv"],
-            help="Glissez-déposez ou cliquez pour sélectionner votre fichier Karasek.",
-            key="karasek_sidebar_uploader",
-        )
-    if _kar_sidebar_up is not None:
-        _b = _kar_sidebar_up.read()
-        if _b:
-            st.session_state["karasek_sidebar_bytes"] = _b
-            st.session_state["karasek_sidebar_name"]  = _kar_sidebar_up.name
+_fb = st.session_state["_kara_file_bytes"]
+_fn = st.session_state["_kara_file_name"]
 
-    # ── Import fichier ────────────────────────────────────────────────────────
-    st.markdown("## 📤 Import des données")
-    st.markdown("Importez un fichier **CSV** ou **Excel** contenant les réponses Karasek Wave-CI.")
+with st.spinner("Chargement et traitement des données…"):
+    df_raw_orig = load_raw_from_bytes(_fb, _fn)
+    df_raw_orig, cleaning_log = clean_pii(df_raw_orig)
 
-    uploaded = st.file_uploader(
-        T[lang]["upload_csv"],
-        type=["csv", "xlsx", "xls"],
-        key="uploaded_karasek",
-        help="Formats acceptés : CSV, Excel (.xlsx, .xls)",
-    )
-
-    _kar_preload = st.session_state.get("karasek_sidebar_bytes") is not None
-    if uploaded is None:
-        if _kar_preload:
-            st.caption(f"📎 Fichier sidebar prêt : **{st.session_state.get('karasek_sidebar_name','')}** — cliquez 🚀 pour lancer")
+with st.expander("Journal de nettoyage automatique", expanded=False):
+    st.text(cleaning_log)
+    df_sc_tmp = load_scored_from_bytes(_fb, _fn)
+    n_lk = sum(1 for c in df_sc_tmp.columns if re.match(r"Q\d+_(comp|auto|dem|sup|col|rec|equ|cult|adq_resources|adq_role|sat)$", c))
+    st.write(f"Items Likert Karasek détectés : {n_lk}")
+    st.caption("Les seuils utilisés sont des seuils théoriques basés sur le point médian de l'échelle Likert (1–4). "
+            "Ce sont des indicateurs conventionnels — ils ne constituent pas des seuils cliniques diagnostiques.")
+    # Debug: show which RH scores were computed
+    _sc_tmp2 = load_scored_from_bytes(_fb, _fn)
+    _rh_debug = []
+    for _g in ["adq_resources_score", "adq_role_score", "rec_score", "equ_score", "cult_score", "sat_score"]:
+        if _g in _sc_tmp2.columns:
+            _n = _sc_tmp2[_g].notna().sum()
+            _m = _sc_tmp2[_g].mean() if _n > 0 else float("nan")
+            _rh_debug.append(f"{_g}: n={_n}, moy={_m:.2f}" if _n > 0 else f"{_g}: aucune valeur calculée")
         else:
-            st.info("👆 En attente d'un fichier… L'analyse démarrera automatiquement après l'import.")
-            st.stop()
+            _rh_debug.append(f"{_g}: ABSENT du dataframe")
+    with st.expander("Diagnostic scores RH (cliquer pour vérifier)", expanded=False):
+        for line in _rh_debug:
+            st.write(line)
 
-    # ── Chargement brut ───────────────────────────────────────────────────────
-    try:
-        if uploaded is not None:
-            ext = uploaded.name.split(".")[-1].lower()
-            if ext == "csv":
-                df_raw = load_uploaded_csv(uploaded)
-            elif ext in ("xlsx", "xls"):
-                df_raw = pd.read_excel(uploaded)
+# FILTRES SIDEBAR
+df_f = render_sidebar(df_raw_orig)
+
+# Appliquer les mêmes filtres sur df_scored via l'index
+df_sc_all  = load_scored_from_bytes(_fb, _fn)
+# Reconstruire les filtres sur df_sc_all à partir de l'index filtré
+common_idx = df_f.index.intersection(df_sc_all.index)
+df_sc      = df_sc_all.loc[common_idx]
+df         = df_f.copy()
+
+with st.sidebar:
+    n_f = len(df)
+    st.markdown(f"""<div style="text-align:center;padding:0.7rem;background:#EDF5FD;border-radius:10px;margin-top:0.8rem;">
+    <span style="font-size:0.7rem;color:#6B88A8;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">Effectif filtré</span><br>
+    <span style="font-family:'Plus Jakarta Sans',sans-serif;font-size:1.6rem;font-weight:800;color:#38A3E8;"
+        class="animate-number" data-target="{n_f}" data-suffix="" data-prefix="" data-decimals="0">{n_f}</span>
+    </div>""", unsafe_allow_html=True)
+
+if len(df) == 0:
+    st.warning("Aucun répondant ne correspond aux filtres sélectionnés.")
+    st.stop()
+
+# ONGLETS
+tab_gen, tab_quad, tab_cross = st.tabs(["Vue d'ensemble", "Stress & Quadrants", "Croisement"])
+
+
+# =============================================================================
+# TAB 1 — VUE D'ENSEMBLE
+# =============================================================================
+with tab_gen:
+    # ─── Données générales ───────────────────────────────────────────────────
+    section_title("Données Générales de la Population")
+    total_n = len(df)
+    gs = df["Genre"].astype(str).str.strip().str.lower() if "Genre" in df.columns else pd.Series(dtype=str)
+    n_men   = int(gs.isin({"homme","male","m"}).sum())   if not gs.empty else 0
+    n_women = int(gs.isin({"femme","female","f"}).sum()) if not gs.empty else 0
+    avg_age = pd.to_numeric(df["Age"], errors="coerce").mean() if "Age" in df.columns else 0.0
+
+    sit_col = _find_pat(list(df.columns), [r"situation.*matrimon"])
+    if sit_col:
+        sv = df[sit_col].value_counts(dropna=True)
+        sit_top, sit_n = (str(sv.index[0]), int(sv.iloc[0])) if not sv.empty else ("N/A", 0)
+        sit_pct = sit_n / total_n * 100 if total_n > 0 else 0.0
+    else:
+        sit_top, sit_n, sit_pct = "N/A", 0, 0.0
+
+    c1,c2,c3,c4,c5 = st.columns(5)
+    with c1: st.markdown(html_kpi(total_n,"Effectif total",
+        icon=svg_icon("M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9.5 7a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a3 3 0 0 1 0 5.75","rgba(56,163,232,0.1)","#38A3E8")), unsafe_allow_html=True)
+    with c2: st.markdown(html_kpi(n_men/total_n*100 if total_n>0 else 0,"Hommes",suffix="%",decimals=0,subtitle=f"{n_men}",
+        icon=svg_icon("M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4M5 21a7 7 0 0 1 14 0","rgba(56,163,232,0.1)","#38A3E8")), unsafe_allow_html=True)
+    with c3: st.markdown(html_kpi(n_women/total_n*100 if total_n>0 else 0,"Femmes",suffix="%",decimals=0,subtitle=f"{n_women}",
+        icon=svg_icon("M12 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4M8 15h8l1.5 6h-11zM12 15v6","rgba(249,115,22,0.1)","#F97316")), unsafe_allow_html=True)
+    with c4: st.markdown(html_kpi(avg_age,"Âge moyen",suffix=" ans",decimals=0,
+        icon=svg_icon("M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z","rgba(249,115,22,0.1)","#F97316")), unsafe_allow_html=True)
+    with c5: st.markdown(html_kpi(sit_pct,"Situation matrimoniale",suffix="%",decimals=0,subtitle=f"{sit_top} — {sit_n}",
+        icon=svg_icon("M12 21.7C5.4 21.7 2 16.4 2 12S5.4 2.3 12 2.3 22 7.6 22 12s-3.4 9.7-10 9.7zM8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01","rgba(34,197,94,0.1)","#22C55E")), unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ─── Modes de vie ────────────────────────────────────────────────────────
+    section_title("Indicateurs de modes de vie")
+    alcool_col = next((c for c in df.columns if re.search(r"consommation.*alcool|alcool", _pp(c))), None)
+    sport_col  = _find_pat(list(df.columns), [r"pratique.*sport",r"\bsport\b"])
+    tabac_col  = _find_pat(list(df.columns), [r"tabag"])
+
+    def _yn(col, val="Oui"):
+        if col is None or col not in df.columns: return 0.0, 0
+        s = df[col].astype(str).str.strip().str.lower()
+        n = int((s==val.lower()).sum())
+        return n/len(s)*100 if len(s)>0 else 0.0, n
+
+    pct_tab, n_tab   = _yn(tabac_col)
+    pct_alc, n_alc   = _yn(alcool_col)
+    n_sed            = int((df[sport_col].astype(str).str.strip().str.lower()=="non").sum()) if sport_col and sport_col in df.columns else 0
+    pct_sed          = n_sed/total_n*100 if total_n>0 else 0.0
+
+    if "IMC_binaire" in df.columns:
+        n_surp  = int((df["IMC_binaire"].astype(str).str.strip()=="Surpoids/Obésité").sum())
+        pct_surp = n_surp/total_n*100
+    else:
+        pct_surp, n_surp = 0.0, 0
+
+    cl1,cl2,cl3,cl4 = st.columns(4)
+    with cl1: st.markdown(html_ls_n(pct_tab,  n_tab,  "Tabagisme"),            unsafe_allow_html=True)
+    with cl2: st.markdown(html_ls_n(pct_alc,  n_alc,  "Consommation d'alcool"),unsafe_allow_html=True)
+    with cl3: st.markdown(html_ls_n(pct_sed,  n_sed,  "Sédentarité"),          unsafe_allow_html=True)
+    with cl4: st.markdown(html_ls_n(pct_surp, n_surp, "Surpoids & Obésité"),   unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ─── Satisfaction organisationnelle ─────────────────────────────────────
+    section_title("Satisfaction organisationnelle")
+    DIMS = [
+        ("rec_score","Reconnaissance"), ("equ_score","Équité de charge"),
+        ("cult_score","Culture d'entreprise"), ("sat_score","Satisfaction"),
+        ("adq_resources_score","Ressources & Objectifs"), ("sup_score","Soutien management"),
+        ("adq_role_score","Formation"), ("comp_score","Compétences"),
+    ]
+    dim_stats = {lbl: get_high_stats(df_sc, sc) for sc, lbl in DIMS}
+    dim_pcts  = {lbl: v[0] for lbl, v in dim_stats.items()}
+
+    with st.container(border=True):
+        st.markdown('<p style="color:#4E6A88;font-size:0.98rem;margin:0.12rem 0 0.65rem;line-height:1.5;">% de collaborateurs avec un niveau élevé de satisfaction par dimension</p>', unsafe_allow_html=True)
+        rc1, rc2 = st.columns([6,4])
+        with rc1:
+            st.plotly_chart(make_radar(dim_pcts, [d[1] for d in DIMS]), use_container_width=True, key="radar_gen")
+        with rc2:
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            bars_html = "".join(html_prog(lbl, pct, "#22C55E" if pct>50 else "#EF4444", n) for lbl,(pct,n,_) in dim_stats.items())
+            st.markdown(bars_html, unsafe_allow_html=True)
+
+
+# =============================================================================
+# TAB 2 — STRESS & QUADRANTS
+# =============================================================================
+with tab_quad:
+    # ─── Jauges ──────────────────────────────────────────────────────────────
+    section_title("Indicateurs clés de stress au travail")
+    g1,g2,g3 = st.columns(3)
+    with g1: st.markdown(html_gauge(get_pct_high(df_sc,"Lat_score"),  "Autonomie décisionnelle", "Flexibilité et contrôle perçus",        inverted=False), unsafe_allow_html=True)
+    with g2: st.markdown(html_gauge(get_pct_high(df_sc,"Dem_score"),  "Charge mentale perçue",   "Intensité de la demande psychologique",  inverted=True),  unsafe_allow_html=True)
+    with g3: st.markdown(html_gauge(get_pct_high(df_sc,"SS_score"),   "Cohésion d'équipe",       "Soutien social collègues & management",  inverted=False), unsafe_allow_html=True)
+
+    # ─── Quadrants KPI ───────────────────────────────────────────────────────
+    section_title("Répartition par quadrant Karasek")
+    quad_col = resolve_quadrant_col(df_sc)
+    if quad_col:
+        qc1,qc2,qc3,qc4 = st.columns(4)
+        tv = len(df_sc.dropna(subset=[quad_col]))
+        aliases = {"Tendu":["Tendu","Tense"],"Actif":["Actif","Active"],"Passif":["Passif","Passive"],"Détendu":["Detendu","Détendu","Relaxed"]}
+        zone_col = {"Tendu":"#EF4444","Actif":"#22C55E","Passif":"#94A3B8","Détendu":"#38A3E8"}
+        for raw, cui in [("Tendu",qc1),("Actif",qc2),("Passif",qc3),("Détendu",qc4)]:
+            n = int(df_sc[quad_col].isin(aliases[raw]).sum())
+            with cui: st.markdown(html_zone(raw, n/tv*100 if tv>0 else 0, n, zone_col[raw]), unsafe_allow_html=True)
+    else:
+        st.info("Scores Karasek manquants — vérifiez que le fichier contient les items Dem/Lat/SS.")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ─── Grille MAPP ─────────────────────────────────────────────────────────
+    section_title("Grille MAPP du Stress")
+    st.markdown('<p style="color:#4E6A88;font-size:0.98rem;margin-top:-0.3rem;line-height:1.55;">Chaque point représente un agent. Les axes délimitent les zones du quadrant Karasek.</p>', unsafe_allow_html=True)
+
+    if quad_col and "Dem_score" in df_sc.columns and "Lat_score" in df_sc.columns:
+        df_p = df_sc[["Dem_score","Lat_score",quad_col]].dropna().copy()
+        if df_p.empty:
+            st.info("Données insuffisantes pour la grille MAPP.")
+        else:
+            qmap = {"Actif":"Actif","Detendu":"Détendu","Détendu":"Détendu","Tendu":"Tendu","Passif":"Passif"}
+            df_p["quad_display"] = df_p[quad_col].map(qmap).fillna(df_p[quad_col])
+            cmap = {v: KARASEK_COLORS.get(k,"#94A3B8") for k,v in qmap.items()}
+            fig_sc = px.scatter(df_p, x="Lat_score", y="Dem_score", color="quad_display",
+                color_discrete_map=cmap, opacity=0.75,
+                labels={"Lat_score":"Latitude décisionnelle (autonomie & compétences)",
+                        "Dem_score":"Demande psychologique (charge mentale)","quad_display":"Zone"},
+                custom_data=["quad_display","Lat_score","Dem_score"])
+            fig_sc.update_traces(marker=dict(size=8,line=dict(width=1,color="white")),
+                hovertemplate="<b>Zone</b>: %{customdata[0]}<br>Autonomie: %{customdata[1]:.1f}<br>Charge: %{customdata[2]:.1f}<extra></extra>")
+            fig_sc.add_vline(x=THRESHOLDS["Lat_score"], line_dash="dot", line_color="rgba(249,115,22,0.45)", line_width=1.8)
+            fig_sc.add_hline(y=THRESHOLDS["Dem_score"], line_dash="dot", line_color="rgba(249,115,22,0.45)", line_width=1.8)
+            xmn,xmx = df_p["Lat_score"].min(),df_p["Lat_score"].max()
+            ymn,ymx = df_p["Dem_score"].min(),df_p["Dem_score"].max()
+            xr,yr   = xmx-xmn, ymx-ymn
+            px_,py_ = max(xr*0.04,0.5), max(yr*0.04,0.5)
+            anns = {"Actif":(xmx-px_,ymx-py_,"right","top"),"Passif":(xmn+px_,ymn+py_,"left","bottom"),
+                    "Détendu":(xmx-px_,ymn+py_,"right","bottom"),"Tendu":(xmn+px_,ymx-py_,"left","top")}
+            for quad,(qx,qy,xa,ya) in anns.items():
+                qk = "Detendu" if quad=="Détendu" else quad
+                fig_sc.add_annotation(x=qx,y=qy,text=quad.upper(),showarrow=False,
+                    font=dict(size=12,color=KARASEK_COLORS.get(qk,"#94A3B8"),family="Plus Jakarta Sans"),
+                    opacity=0.3,xanchor=xa,yanchor=ya)
+            _plotly_base(fig_sc, height=500)
+            fig_sc.update_layout(xaxis_title="Latitude décisionnelle (autonomie & compétences)",
+                yaxis_title="Demande psychologique (charge mentale)", legend_title_text="Zone")
+            st.plotly_chart(fig_sc, use_container_width=True, key="mapp_chart")
+    else:
+        st.warning("Colonnes manquantes pour la grille MAPP (Dem_score, Lat_score).")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ─── Heatmap par direction ────────────────────────────────────────────────
+    dir_col_hm = next((c for c in df_sc.columns if _pp(c)=="direction"), None)
+    if dir_col_hm and quad_col:
+        section_title("Heatmap Karasek par direction")
+        ct_hm = pd.crosstab(df_sc[dir_col_hm], df_sc[quad_col], normalize="index")*100
+        quads_hm = ["Tendu","Actif","Passif","Detendu"]
+        for q in quads_hm:
+            if q not in ct_hm.columns: ct_hm[q] = 0
+        ct_hm = ct_hm.sort_values("Tendu", ascending=True)
+        cmaps = {"Tendu":["#ffffff","#e74c3c"],"Actif":["#ffffff","#3498db"],"Passif":["#ffffff","#f39c12"],"Detendu":["#ffffff","#2ecc71"]}
+        fig_hm, axes = plt.subplots(1,4,figsize=(20,1+len(ct_hm)*0.4),sharey=True)
+        fig_hm.patch.set_facecolor("#f8f9fa")
+        for ax, q in zip(axes, quads_hm):
+            cm = LinearSegmentedColormap.from_list(f"c_{q}", cmaps[q])
+            sns.heatmap(ct_hm[[q]], ax=ax, cmap=cm, vmin=0, vmax=60, annot=True, fmt=".0f",
+                        annot_kws={"size":8}, linewidths=0.5, linecolor="#eee", cbar=False)
+            ax.set_title(q.upper(), fontsize=11, fontweight="bold", color=cmaps[q][1])
+            ax.set_xlabel("%", fontsize=9); ax.tick_params(axis="y", labelsize=9)
+            for spine in ax.spines.values(): spine.set_visible(False)
+        plt.suptitle("Répartition Karasek par Direction — seuil théorique", fontsize=13, fontweight="bold", y=1.02)
+        png_hm = _fig_to_png(fig_hm)
+        if png_hm:
+            st.download_button("Télécharger PNG", data=png_hm, file_name="heatmap_direction.png", mime="image/png", key="dl_hm")
+        st.pyplot(fig_hm, use_container_width=True)
+        plt.close(fig_hm)
+
+
+# =============================================================================
+# TAB 3 — CROISEMENT
+# =============================================================================
+with tab_cross:
+    section_title("Exploration des données démographiques")
+
+    csp_actual = resolve_csp_col(df) or "Categorie Socio"
+    alc_lbl    = "Consommation d'alcool"
+    alc_col2   = next((c for c in df.columns if re.search(r"consommation.*alcool|alcool", _pp(c))), None)
+    sport_col2 = _find_pat(list(df.columns), [r"pratique.*sport",r"\bsport\b"])
+    tabac_col2 = _find_pat(list(df.columns), [r"tabag"])
+
+    VAR_MAP = {
+        "Genre":                         "Genre",
+        "Tranche d'âge":                 "Tranche_age",
+        "Ancienneté":                    "Tranche_anciennete",
+        "Catégorie socioprofessionnelle": csp_actual,
+        "Catégorie IMC":                 "Categorie_IMC",
+        "IMC (normal / surpoids)":       "IMC_binaire",
+        "Direction":                     "Direction",
+        "Tabagisme":                     tabac_col2 or "",
+        alc_lbl:                         alc_col2   or "",
+        "Pratique sportive":             sport_col2 or "",
+        "Maladie chronique":             next((c for c in df.columns if re.search(r"maladie.*chron", _pp(c))), ""),
+    }
+    CROSS_MAP = {
+        "Aucun croisement":                 None,
+        "Quadrant Karasek":                 quad_col,
+        "Charge mentale (catég.)":          "Dem_score_theo_cat",
+        "Autonomie décisionnelle (catég.)": "Lat_score_theo_cat",
+        "Soutien social (catég.)":          "SS_score_theo_cat",
+        "Reconnaissance (catég.)":          "rec_score_theo_cat",
+        "Satisfaction (catég.)":            "sat_score_theo_cat",
+        "Culture d'entreprise (catég.)":    "cult_score_theo_cat",
+        "Équité de charge (catég.)":        "equ_score_theo_cat",
+    }
+    avail_vars  = [k for k,v in VAR_MAP.items()  if v and v in df_sc.columns]
+    avail_cross = [k for k,v in CROSS_MAP.items() if v is None or (v and v in df_sc.columns)]
+
+    cx1,cx2 = st.columns(2)
+    with cx1:
+        st.markdown('<span style="font-size:0.76rem;font-weight:700;color:#2F577F;letter-spacing:0.1em;text-transform:uppercase;">Variable à visualiser</span>', unsafe_allow_html=True)
+        sel_var   = st.selectbox("Variable",    avail_vars,  key="cr_var",   label_visibility="collapsed")
+    with cx2:
+        st.markdown('<span style="font-size:0.76rem;font-weight:700;color:#2F577F;letter-spacing:0.1em;text-transform:uppercase;">Croiser avec (optionnel)</span>', unsafe_allow_html=True)
+        sel_cross = st.selectbox("Croisement", avail_cross, key="cr_cross", label_visibility="collapsed")
+
+    real_col  = VAR_MAP.get(sel_var)    if sel_var   else None
+    cross_col = CROSS_MAP.get(sel_cross) if sel_cross else None
+
+    if real_col and real_col in df_sc.columns:
+        if cross_col and cross_col in df_sc.columns:
+            fig_cr = make_stacked(df_sc, real_col, cross_col)
+            if fig_cr:
+                st.plotly_chart(fig_cr, use_container_width=True, key="cr_stacked")
+                tmp = df_sc[[real_col, cross_col]].dropna()
+                if not tmp.empty:
+                    pct_tbl = pd.crosstab(tmp[real_col].astype(str), tmp[cross_col].astype(str), normalize="index").mul(100).round(1)
+                    st.markdown("**Tableau de distribution (%)**")
+                    st.dataframe(pct_tbl.style.format("{:.1f}%"), use_container_width=True)
+                    with st.expander("Effectifs bruts"):
+                        st.dataframe(pd.crosstab(tmp[real_col].astype(str), tmp[cross_col].astype(str), margins=True, margins_name="Total"), use_container_width=True)
             else:
-                st.error(f"Format non supporté : {ext}")
-                st.stop()
+                st.info("Données insuffisantes pour ce croisement.")
         else:
-            # Utiliser le fichier chargé via la sidebar
-            _kbuf = io.BytesIO(st.session_state["karasek_sidebar_bytes"])
-            _kfn  = st.session_state["karasek_sidebar_name"].lower()
-            if _kfn.endswith((".xlsx", ".xls")):
-                df_raw = pd.read_excel(_kbuf)
-            else:
-                df_raw = load_uploaded_csv(_kbuf)
-    except Exception as e:
-        st.error(f"Erreur lors du chargement : {e}")
-        st.stop()
+            # ── Univarié
+            c_chart, c_table = st.columns([6,4])
+            with c_chart:
+                fig_bar = make_barplot(df_sc, real_col)
+                if fig_bar: st.plotly_chart(fig_bar, use_container_width=True, key="cr_bar")
+            with c_table:
+                cnt = df_sc[real_col].value_counts().reset_index()
+                cnt.columns = [sel_var, "N"]
+                cnt["%"] = (cnt["N"]/cnt["N"].sum()*100).round(1)
+                st.dataframe(cnt, use_container_width=True, hide_index=True)
+    else:
+        st.info("Sélectionnez une variable pour afficher le graphique.")
 
-    if df_raw.empty:
-        st.error("Le fichier est vide ou illisible.")
-        st.stop()
-
-
-    # ── Pipeline Wave-CI ──────────────────────────────────────────────────────
-    with st.spinner("⚙️  Pipeline Karasek Wave-CI en cours…"):
-        try:
-            df_processed, metrics, pipeline_logs = run_karasek_pipeline(df_raw)
-            pipeline_ok = True
-        except Exception as e:
-            pipeline_ok   = False
-            pipeline_error = str(e)
-            pipeline_logs  = list(_pipeline_logs)
-
-    # ── Journal de traitement (expander) ─────────────────────────────────────
-    with st.expander("📋 Journal de traitement du pipeline Karasek", expanded=not pipeline_ok):
-        if pipeline_logs:
-            for line in pipeline_logs:
-                st.markdown(
-                    f'<div style="font-family:monospace;font-size:0.82rem;'
-                    f'padding:2px 0;color:#1e293b;">{line}</div>',
-                    unsafe_allow_html=True,
-                )
-        else:
-            st.caption("Aucun log disponible.")
-
-        if pipeline_ok:
-            st.markdown("---")
-            m = metrics
-            col_m1, col_m2, col_m3 = st.columns(3)
-            col_m1.metric("Lignes initiales",  m["rows_initial"])
-            col_m2.metric("Lignes finales",    m["rows_final"])
-            col_m3.metric("Colonnes générées", m["columns_generated"])
-
-            # Seuils internes
-            ti = m.get("thresholds_internal", {})
-            if ti:
-                st.markdown("**Seuils internes (médiane organisationnelle — RAPPORT)**")
-                st.markdown(
-                    f"Dem médiane : **{ti.get('Dem_median', '—'):.2f}**  |  "
-                    f"Lat médiane : **{ti.get('Lat_median', '—'):.2f}**  |  "
-                    f"SS médiane : **{ti.get('SS_median', '—'):.2f}**"
-                )
-
-            # Seuils théoriques
-            tt = m.get("thresholds_theoretical", {})
-            if tt:
-                st.markdown("**Seuils théoriques (point central de l'échelle — DASHBOARD)**")
-                st.caption(
-                    f"Dem : {tt.get('Dem_threshold','—')}  |  "
-                    f"Lat : {tt.get('Lat_threshold','—')}  |  "
-                    f"SS : {tt.get('SS_threshold','—')}"
-                )
-                st.caption(f"⚠️  {tt.get('note','')}")
-        else:
-            st.error(f"❌ Erreur pipeline : {pipeline_error}")
-
-    if not pipeline_ok:
-        st.error("Le pipeline a échoué. Vérifiez le journal ci-dessus.")
-        st.stop()
-
-    df_enriched = df_processed
-    st.caption(f"{T[lang]['upload_active']}: {uploaded.name}  |  {metrics['rows_final']} répondants traités")
-
-    # ── Filtres + tableau de bord ─────────────────────────────────────────────
-    sel_dirs, sel_csps, sel_genres, sel_age_range = render_top_filters(df_enriched, lang)
-    df = apply_filters(df_enriched, sel_dirs, sel_csps, sel_genres, sel_age_range)
-
-    st.markdown(f"""
-    <div style="display:flex;align-items:center;gap:0.6rem;margin:-0.3rem 0 0.6rem auto;width:fit-content;">
-        <span style="font-size:0.65rem;color:#6B88A8;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">
-            {T[lang]['n_filtered']}
-        </span>
-        <span style="font-family:'Plus Jakarta Sans',sans-serif;font-size:1.05rem;font-weight:800;color:#38A3E8;
-                    background:rgba(56,163,232,0.08);padding:0.1rem 0.6rem;border-radius:8px;
-                    border:1px solid rgba(56,163,232,0.2);"
-            class="animate-number" data-target="{len(df)}" data-suffix="" data-prefix="" data-decimals="0">{len(df)}</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-    if len(df) == 0:
-        st.warning("Aucun répondant ne correspond aux filtres sélectionnés.")
-        st.stop()
-
-    t = T[lang]
-    tab1, tab2 = st.tabs([t["tab1"], t["tab2"]])
-    with tab1:
-        render_tab1(df, lang)
-    with tab2:
-        render_tab2(df, lang)
-
-
-if __name__ == "__main__":
-    main()
+# =============================================================================
+# FIN
+# =============================================================================
