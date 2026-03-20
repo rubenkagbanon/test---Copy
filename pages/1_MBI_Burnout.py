@@ -18,67 +18,236 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.markdown(
-    '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">'
-    '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">'
-    '<style>'
-    'html,body,[class*="css"]{font-family:Inter,sans-serif!important}'
-    '.main{background:#f1f4f9!important}'
-    '.block-container{padding:1.5rem 2rem!important;max-width:1300px!important}'
-    '#MainMenu,footer,header{visibility:hidden}'
-    '.stTabs [data-baseweb="tab-list"]{gap:8px;background:transparent;padding:4px 0 12px 0;border-bottom:none!important}'
-    '.stTabs [data-baseweb="tab"]{height:44px;padding:0 24px;background:#f8fafc!important;border-radius:9px;'
-    'border:1.5px solid #e2e8f0!important;color:#475569!important;font-weight:600;font-size:13px;'
-    'box-shadow:none;transition:all 0.2s}'
-    '.stTabs [data-baseweb="tab"] p{color:#475569!important}'
-    '.stTabs [data-baseweb="tab"]:hover{border-color:#3b82f6!important;color:#1e40af!important}'
-    '.stTabs [data-baseweb="tab"]:hover p{color:#1e40af!important}'
-    '.stTabs [aria-selected="true"]{background:linear-gradient(135deg,#1e40af,#3b82f6)!important;'
-    'color:white!important;border-color:#1e40af!important;box-shadow:0 3px 10px rgba(30,64,175,0.25)!important}'
-    '.stTabs [aria-selected="true"] p{color:white!important}'
-    '.stTabs [data-baseweb="tab-highlight"]{display:none!important}'
-    '.stTabs [data-baseweb="tab-border"]{display:none!important}'
-    '.stButton>button{background:white!important;color:#1e40af!important;'
-    'border:1.5px solid #bfdbfe!important;border-radius:10px!important;'
-    'font-weight:600!important;font-size:13px!important;height:42px!important;transition:all 0.2s!important}'
-    '.stButton>button:hover{background:#1e40af!important;color:white!important;border-color:#1e40af!important}'
-    '.stDownloadButton>button{background:white!important;color:#1e40af!important;'
-    'border:1.5px solid #bfdbfe!important;border-radius:10px!important;'
-    'font-weight:600!important;font-size:13px!important;transition:all 0.2s!important}'
-    '.stDownloadButton>button:hover{background:#1e40af!important;color:white!important}'
-    'div[data-baseweb="select"]>div{background:white!important;border:1.5px solid #cbd5e1!important;'
-    'border-radius:9px!important;color:#1e293b!important}'
-    'div[data-baseweb="select"] span{color:#1e293b!important}'
-    'div[data-baseweb="select"] input{color:#1e293b!important}'
-    'div[data-baseweb="select"] *{color:#1e293b!important}'
-    '.stSelectbox label{color:#1e293b!important;font-weight:600!important;font-size:13px!important}'
-    '.stSelectbox p{color:#1e293b!important}'
-    '[data-baseweb="select"] [data-testid="stMarkdownContainer"] p{color:#1e293b!important}'
-    'div[data-baseweb="select"] div{color:#1e293b!important}'
-    'ul[role="listbox"]{background:white!important;border:1px solid #e2e8f0!important;'
-    'border-radius:10px!important;box-shadow:0 8px 24px rgba(0,0,0,0.11)!important}'
-    'li[role="option"]{background:white!important;color:#1e293b!important;font-size:13px!important}'
-    'li[role="option"] *{color:#1e293b!important}'
-    'li[role="option"]:hover{background:#eff6ff!important;color:#1e40af!important}'
-    'li[role="option"]:hover *{color:#1e40af!important}'
-    'li[role="option"][aria-selected="true"]{background:#1e40af!important;color:white!important}'
-    'li[role="option"][aria-selected="true"] *{color:white!important}'
-    '[data-testid="collapsedControl"]{background:#1e40af!important;border-radius:0 8px 8px 0!important}'
-    '[data-testid="collapsedControl"] svg{fill:white!important}'
-    '.stTextInput>div>div>input{border:1.5px solid #cbd5e1!important;border-radius:9px!important;'
-    'font-size:14px!important;color:#1e293b!important;background:white!important;padding:10px 14px!important}'
-    '.stTextInput>div>div>input:focus{border-color:#3b82f6!important;background:white!important;'
-    'box-shadow:0 0 0 3px rgba(59,130,246,0.15)!important}'
-    '.stTextInput label{color:#1e293b!important;font-weight:600!important;font-size:13px!important}'
-    '.stNumberInput>div>div>input{border:1.5px solid #cbd5e1!important;border-radius:9px!important;'
-    'font-size:14px!important;color:#1e293b!important;background:white!important}'
-    '.stNumberInput>div>div>input:focus{border-color:#3b82f6!important;background:white!important;'
-    'box-shadow:0 0 0 3px rgba(59,130,246,0.15)!important}'
-    '.stNumberInput label{color:#1e293b!important;font-weight:600!important;font-size:13px!important}'
-    '.stNumberInput button{background:white!important;border-color:#cbd5e1!important;color:#1e40af!important}'
-    '</style>',
-    unsafe_allow_html=True
-)
+def _get_inline_css() -> str:
+    return """
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,400;1,9..144,600&display=swap');
+
+/* ── Variables ─────────────────────────────────────────────────────────── */
+:root {
+  --bg-soft:    #eef2f7;
+  --card:       #ffffff;
+  --text:       #2f3d55;
+  --accent:     #dc2626;
+  --accent-soft:#fee2e2;
+  --border:     #dde5f2;
+}
+
+/* ── Base typographie ────────────────────────────────────────────────────── */
+html, body, [class*="css"], .stApp {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+#MainMenu, footer, header { visibility: hidden; }
+
+.stApp {
+  background-color: #F0F7FF;
+  background-image:
+    radial-gradient(ellipse 1000px 500px at 10% -5%, rgba(56,163,232,0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 600px 400px at 90% 105%, rgba(249,115,22,0.08) 0%, transparent 50%);
+  color: var(--text);
+}
+
+.main .block-container {
+  padding-top: 0.75rem;
+  padding-left: 2rem;
+  padding-right: 2rem;
+  max-width: 1500px;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+[data-testid="stSidebar"] {
+  background-color: #FFFFFF !important;
+  border-right: 1px solid #E4F0FB !important;
+}
+[data-testid="stSidebar"] .stMarkdown,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] .stText {
+  color: #0F2340 !important;
+}
+
+/* ── Grands titres de section : Fraunces italic ──────────────────────────── */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-size: 1.25rem !important;
+  font-style: italic !important;
+  font-weight: 400 !important;
+  color: #0F2340 !important;
+  margin: 1.6rem 0 1rem !important;
+  padding-bottom: 0.65rem !important;
+  border-bottom: 2px solid #dde5f2 !important;
+}
+
+.section-title::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 22px;
+  background: linear-gradient(180deg, #dc2626 0%, #f87171 100%);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Onglets ─────────────────────────────────────────────────────────────── */
+[data-baseweb="tab-list"] {
+  background: #FFFFFF !important;
+  border-radius: 12px !important;
+  padding: 4px !important;
+  gap: 3px !important;
+  border: 1px solid #dde5f2 !important;
+  box-shadow: 0 2px 8px rgba(56,163,232,0.07) !important;
+}
+
+[data-baseweb="tab"] {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 0.88rem !important;
+  color: #6B88A8 !important;
+  border-radius: 9px !important;
+  padding: 0.5rem 1.4rem !important;
+  transition: all 0.2s !important;
+}
+
+[aria-selected="true"][data-baseweb="tab"] {
+  background: linear-gradient(135deg, #38A3E8, #2B8FD0) !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  box-shadow: 0 3px 12px rgba(56,163,232,0.30) !important;
+}
+
+[data-baseweb="tab-highlight"],
+[data-baseweb="tab-border"] {
+  display: none !important;
+}
+
+/* ── Boutons ─────────────────────────────────────────────────────────────── */
+.stButton > button {
+  background: linear-gradient(135deg, #38A3E8, #2B8FD0) !important;
+  border: none !important;
+  color: #FFFFFF !important;
+  border-radius: 10px !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 0.8rem !important;
+  letter-spacing: 0.02em !important;
+  box-shadow: 0 3px 10px rgba(56,163,232,0.25) !important;
+  transition: all 0.18s !important;
+}
+
+.stButton > button:hover {
+  background: linear-gradient(135deg, #F97316, #EA6A0A) !important;
+  box-shadow: 0 4px 16px rgba(249,115,22,0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+.stDownloadButton > button {
+  background: white !important;
+  color: #38A3E8 !important;
+  border: 1.5px solid #bfdbfe !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  transition: all 0.2s !important;
+}
+
+.stDownloadButton > button:hover {
+  background: #38A3E8 !important;
+  color: white !important;
+}
+
+/* ── Selects ─────────────────────────────────────────────────────────────── */
+div[data-baseweb="select"] > div {
+  background: white !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 9px !important;
+  color: #1e293b !important;
+}
+div[data-baseweb="select"] span,
+div[data-baseweb="select"] input,
+div[data-baseweb="select"] *,
+div[data-baseweb="select"] div { color: #1e293b !important; }
+.stSelectbox label, .stSelectbox p,
+[data-baseweb="select"] [data-testid="stMarkdownContainer"] p {
+  color: #1e293b !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+ul[role="listbox"] {
+  background: white !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.11) !important;
+}
+li[role="option"] { background: white !important; color: #1e293b !important; font-size: 13px !important; }
+li[role="option"] * { color: #1e293b !important; }
+li[role="option"]:hover { background: #eff6ff !important; color: #1e40af !important; }
+li[role="option"]:hover * { color: #1e40af !important; }
+li[role="option"][aria-selected="true"] { background: #1e40af !important; color: white !important; }
+li[role="option"][aria-selected="true"] * { color: white !important; }
+[data-testid="collapsedControl"] { background: #1e40af !important; border-radius: 0 8px 8px 0 !important; }
+[data-testid="collapsedControl"] svg { fill: white !important; }
+
+/* ── Inputs texte & nombre ───────────────────────────────────────────────── */
+.stTextInput > div > div > input {
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 9px !important;
+  font-size: 14px !important;
+  color: #1e293b !important;
+  background: white !important;
+  padding: 10px 14px !important;
+}
+.stTextInput > div > div > input:focus {
+  border-color: #3b82f6 !important;
+  background: white !important;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
+}
+.stTextInput label { color: #1e293b !important; font-weight: 600 !important; font-size: 13px !important; }
+.stNumberInput > div > div > input {
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 9px !important;
+  font-size: 14px !important;
+  color: #1e293b !important;
+  background: white !important;
+}
+.stNumberInput > div > div > input:focus {
+  border-color: #3b82f6 !important;
+  background: white !important;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
+}
+.stNumberInput label { color: #1e293b !important; font-weight: 600 !important; font-size: 13px !important; }
+.stNumberInput button { background: white !important; border-color: #cbd5e1 !important; color: #1e40af !important; }
+
+/* ── Plotly charts ───────────────────────────────────────────────────────── */
+div[data-testid="stPlotlyChart"] {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 0 4px 16px rgba(52,78,124,0.08);
+  padding: 6px;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #eef2f7; }
+::-webkit-scrollbar-thumb { background: #b0c4d8; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #38A3E8; }
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .main .block-container { padding-left: 0.7rem; padding-right: 0.7rem; }
+}
+"""
+
+def load_css() -> None:
+    _INLINE_CSS = _get_inline_css()
+    st.markdown(
+        '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">'
+        '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,400;1,9..144,600&display=swap" rel="stylesheet">'
+        f'<style>\n{_INLINE_CSS}\n</style>',
+        unsafe_allow_html=True
+    )
 
 # ════════════════════════════════════════════════════════════
 # SESSION STATE
@@ -215,6 +384,7 @@ _SOCIO_COLS_MBI = [
     'genre', 'age', 'anciennete', 'poids', 'taille',
     'situation_matrimoniale', 'pratique_sport', 'consommation_alcool',
     'tabagisme', 'maladie_chronique', 'handicap_physique', 'suivi_psychologique',
+    'poste_travail', 'direction', 'departement', 'service', 'fonction',
 ]
 
 # Alias fréquents pour les colonnes clés (fuzzy renommage socio)
@@ -236,6 +406,12 @@ _SOCIO_ALIASES = {
     'suivi_psychologique':     ['suivi_psychologique',
                                 'avez-vous ete suivi pour un probleme psychologique',
                                 'psy', 'suivi_psy'],
+    'poste_travail':           ['poste_travail', 'poste de travail', 'poste', 'job_title',
+                                'intitule_poste', 'titre_poste'],
+    'direction':               ['direction', 'direction_entreprise', 'dir'],
+    'departement':             ['departement', 'département', 'dept', 'department'],
+    'service':                 ['service', 'service_entreprise', 'unit'],
+    'fonction':                ['fonction', 'function', 'role', 'rôle'],
 }
 
 # Valeurs binaires Oui/Non reconnues
@@ -490,8 +666,8 @@ with _col_top:
         'border-radius:10px;display:flex;align-items:center;justify-content:center;">'
         '<i class="fas fa-fire" style="color:white;font-size:15px;"></i></div>'
         '<div>'
-        '<div style="font-size:16px;font-weight:700;color:#1e293b;">MBI — Maslach Burnout Inventory</div>'
-        '<div style="font-size:11px;color:#64748b;margin-top:1px;">Analyse du burnout professionnel · YODAN Analytics</div>'
+        '<div style="font-size:16px;font-weight:700;color:#1e293b;font-family:\'Plus Jakarta Sans\',sans-serif;">MBI — Maslach Burnout Inventory</div>'
+        '<div style="font-size:11px;color:#64748b;margin-top:1px;font-family:\'Plus Jakarta Sans\',sans-serif;">Analyse du burnout professionnel · YODAN Analytics</div>'
         '</div></div>',
         unsafe_allow_html=True,
     )
@@ -501,102 +677,40 @@ with _col_back:
     if st.button("← Accueil", key="back_home_mbi", use_container_width=True):
         st.switch_page("app.py")
 
-# ════════════════════════════════════════════════════════════
-# IMPORT SIDEBAR
-# ════════════════════════════════════════════════════════════
-with st.sidebar:
-    st.header("📂 Données")
-    _mbi_sidebar_up = st.file_uploader(
-        "Charger un fichier Excel ou CSV",
-        type=["xlsx", "xls", "csv"],
-        help="Glissez-déposez ou cliquez pour sélectionner votre fichier MBI.",
-        key="mbi_sidebar_uploader",
-    )
-
-if _mbi_sidebar_up is not None:
-    _b = _mbi_sidebar_up.read()
-    if _b:
-        st.session_state["mbi_sidebar_bytes"] = _b
-        st.session_state["mbi_sidebar_name"]  = _mbi_sidebar_up.name
+st.markdown("<div style='margin-top:1rem;'></div>", unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════
 # SECTION IMPORT
 # ════════════════════════════════════════════════════════════
-_data_loaded = st.session_state['mbi_df'] is not None and st.session_state['mbi_nom']
+_data_loaded = st.session_state['mbi_df'] is not None
 
 if not _data_loaded:
-    # Si un fichier a été chargé depuis la sidebar, pré-remplir l'uploader central
-    _sidebar_preload = st.session_state.get('mbi_sidebar_bytes') is not None
-
-    sec("Configuration de l'analyse")
-    st.markdown(
-        '<div style="background:white;border-radius:12px;padding:20px 24px 16px;'
-        'box-shadow:0 1px 4px rgba(0,0,0,0.06);border:1px solid #e8edf5;margin-bottom:12px;">'
-        '<div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:14px;">'
-        '<i class="fas fa-upload" style="color:#1e40af;margin-right:8px;"></i>'
-        'Renseignez les informations ci-dessous pour démarrer l\'analyse</div>'
-        '</div>',
-        unsafe_allow_html=True
+    uploaded = st.file_uploader(
+        "Charger un fichier Excel ou CSV",
+        type=['csv', 'xlsx', 'xls'],
+        key="upload_mbi",
+        help="Le fichier doit contenir les 22 items du questionnaire MBI.",
     )
-    col_nom, col_eff, col_file, col_btn = st.columns([1.6, 1, 2, 0.9])
-    with col_nom:
-        nom_input = st.text_input("Nom de l'entreprise", value=st.session_state['mbi_nom'],
-                                   placeholder="Ex : Pahaliah & Fils", key="input_nom")
-    with col_eff:
-        eff_input = st.number_input("Effectif total", min_value=1, value=100,
-                                    step=1, key="input_effectif")
-    with col_file:
-        uploaded = st.file_uploader("Base de données MBI (CSV / Excel)", type=['csv','xlsx','xls'], key="upload_mbi")
-        if uploaded is None and _sidebar_preload:
-            st.caption(f"📎 Fichier sidebar prêt : **{st.session_state['mbi_sidebar_name']}**")
-    with col_btn:
-        st.markdown("<div style='height:27px'></div>", unsafe_allow_html=True)
-        lancer = st.button("🚀  Lancer", use_container_width=True, key="btn_lancer")
 
-    if lancer:
-        errors = []
-        if not nom_input.strip(): errors.append("Veuillez saisir le nom de l'entreprise.")
-        # Accepter soit l'uploader central, soit le fichier sidebar
-        has_file = uploaded is not None or _sidebar_preload
-        if not has_file: errors.append("Veuillez importer un fichier CSV ou Excel.")
-        if errors:
-            for e in errors: st.error(f"❌ {e}")
-        else:
+    has_file = uploaded is not None
+    if has_file:
+        with st.spinner("Chargement et traitement des données…"):
             try:
-                # ── Lecture brute (priorité uploader central, sinon sidebar) ──
-                if uploaded is not None:
-                    ext = uploaded.name.rsplit('.', 1)[-1].lower()
-                    if ext in ('xlsx', 'xls'):
-                        raw = pd.read_excel(uploaded)
-                    else:
-                        try:
-                            raw = pd.read_csv(uploaded, encoding='utf-8-sig')
-                        except Exception:
-                            uploaded.seek(0)
-                            raw = pd.read_csv(uploaded, encoding='latin-1')
+                ext = uploaded.name.rsplit('.', 1)[-1].lower()
+                if ext in ('xlsx', 'xls'):
+                    raw = pd.read_excel(uploaded)
                 else:
-                    # Fichier depuis sidebar
-                    _buf = io.BytesIO(st.session_state['mbi_sidebar_bytes'])
-                    _fn  = st.session_state['mbi_sidebar_name'].lower()
-                    if _fn.endswith(('.xlsx', '.xls')):
-                        raw = pd.read_excel(_buf)
-                    else:
-                        for _enc in ('utf-8-sig', 'latin-1', 'cp1252'):
-                            try:
-                                _buf.seek(0)
-                                raw = pd.read_csv(_buf, encoding=_enc)
-                                break
-                            except UnicodeDecodeError:
-                                continue
+                    try:
+                        raw = pd.read_csv(uploaded, encoding='utf-8-sig')
+                    except Exception:
+                        uploaded.seek(0)
+                        raw = pd.read_csv(uploaded, encoding='latin-1')
 
                 all_logs = []
                 all_logs.append("═══ ÉTAPE 1 : Fuzzy match des questions MBI ═══")
-
-                # ── Fuzzy match colonnes MBI ───────────────────────────
                 raw, fuzzy_logs, matched_q_count = fuzzy_rename_mbi_columns(raw)
                 all_logs.extend(fuzzy_logs)
 
-                # ── Vérification des 22 questions après fuzzy ──────────
                 manquantes = [c for c in MBI_COLS if c not in raw.columns]
                 if manquantes:
                     cleaning_log = "\n".join(all_logs)
@@ -609,45 +723,40 @@ if not _data_loaded:
                         f"Vérifiez que les intitulés de colonnes correspondent aux 22 questions MBI."
                     )
                 else:
-                    # ── Nettoyage commun ───────────────────────────────
                     all_logs.append("")
                     all_logs.append("═══ ÉTAPE 2 : Nettoyage & standardisation des variables ═══")
                     raw, clean_logs = clean_common_variables(raw)
                     all_logs.extend(clean_logs)
-
-                    # ── Traitement MBI (scores + catégories) ───────────
                     all_logs.append("")
                     all_logs.append("═══ ÉTAPE 3 : Calcul des scores MBI ═══")
                     processed = process_df(raw)
                     all_logs.append(f"✅ Scores EE / DP / PA calculés sur {len(processed)} répondants.")
-                    all_logs.append(f"✅ Classification burnout appliquée (Pas de burnout / Pré-burnout / Burnout avéré).")
-
-                    # ── Stockage en session ────────────────────────────
+                    all_logs.append(f"✅ Classification burnout appliquée.")
                     st.session_state['mbi_df']        = processed
-                    st.session_state['mbi_nom']       = nom_input.strip()
-                    st.session_state['mbi_effectif']  = int(eff_input)
+                    st.session_state['mbi_nom']       = ''
+                    st.session_state['mbi_effectif']  = len(processed)
                     st.session_state['mbi_clean_log'] = "\n".join(all_logs)
                     st.session_state['mbi_matched_q'] = matched_q_count
                     st.rerun()
 
             except Exception as ex:
                 st.error(f"❌ Erreur lors de la lecture du fichier : {ex}")
+    else:
+        st.info("Veuillez charger un fichier de données (Excel ou CSV) pour démarrer l'analyse.")
     st.stop()
 
 # ── Données chargées : badge compact + bouton reset ───────────
 df  = st.session_state['mbi_df']
-nom = st.session_state['mbi_nom']
-total_entreprise = st.session_state['mbi_effectif'] or len(df)
+total_analyses = len(df)
 
 col_badge, col_reset = st.columns([6, 1])
 with col_badge:
-    nd = nom.replace('&','&amp;')
     st.markdown(
         f'<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;'
         f'padding:9px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">'
         f'<i class="fas fa-check-circle" style="color:#16a34a;font-size:14px;"></i>'
         f'<span style="font-size:13px;color:#15803d;font-weight:600;">'
-        f'Base chargée · {len(df)} analysés / {total_entreprise} employés · {nd}</span>'
+        f'{len(df)} répondants chargés · Analyse MBI prête</span>'
         f'</div>',
         unsafe_allow_html=True
     )
@@ -709,8 +818,6 @@ with st.expander(
 # ════════════════════════════════════════════════════════════
 # CALCULS
 # ════════════════════════════════════════════════════════════
-total_analyses = len(df)
-total_analyses = len(df)
 nb_f   = (df['genre']=='Femme').sum()  if 'genre' in df.columns else 0
 nb_h   = (df['genre']=='Homme').sum()  if 'genre' in df.columns else 0
 pct_f  = nb_f / total_analyses * 100
@@ -725,7 +832,7 @@ nb_avere = bc.get('Burnout avéré',  0); pct_avere = nb_avere / total_analyses 
 # ════════════════════════════════════════════════════════════
 # ONGLETS
 # ════════════════════════════════════════════════════════════
-onglet1, onglet2 = st.tabs(["  Informations générales", "  Résultats MBI Burnout"])
+onglet1, onglet2 = st.tabs(["Vue d'ensemble", "Résultats MBI Burnout"])
 
 # ╔══════════════════════════════════════════════════════════╗
 # ║  ONGLET 1                                               ║
@@ -736,7 +843,7 @@ with onglet1:
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown(kpi("fas fa-users","#1e40af","#eff6ff","#3b82f6",
-            f"{total_analyses/total_entreprise*100:.1f}","%",f"{total_analyses} analysés sur {total_entreprise}","Population analysée"), unsafe_allow_html=True)
+            f"{total_analyses}","","répondants analysés","Population analysée"), unsafe_allow_html=True)
     with c2:
         if nb_f > nb_h:
             st.markdown(kpi("fas fa-female","#7c3aed","#f5f3ff","#a78bfa",
@@ -755,17 +862,17 @@ with onglet1:
     if 'poids' in df.columns and 'taille' in df.columns:
         if 'imc' not in df.columns:
             df['imc'] = df['poids'] / ((df['taille']/100)**2)
-        RISQUES_DATA.append(('<i class="fas fa-weight"></i>', "Obésité/Surpoids",
+        RISQUES_DATA.append(('<i class="fas fa-weight-scale"></i>', "Obésité/Surpoids",
                              int((df['imc'] >= 25).sum())))
-    for col_r, lbl_r, vals_r in [
-        ('pratique_sport',    "Sédentarité (pas sport)",  ['non','0','false']),
-        ('consommation_alcool',"Consommation alcool",      ['oui','1','true']),
-        ('tabagisme',          "Consommation tabac",       ['oui','1','true']),
-        ('maladie_chronique',  "Maladie chronique",        ['oui','1','true']),
+    for col_r, lbl_r, vals_r, icon_r in [
+        ('pratique_sport',    "Sédentarité (pas sport)",  ['non','0','false'], '<i class="fas fa-person-walking"></i>'),
+        ('consommation_alcool',"Consommation alcool",      ['oui','1','true'],  '<i class="fas fa-wine-glass"></i>'),
+        ('tabagisme',          "Consommation tabac",       ['oui','1','true'],  '<i class="fas fa-smoking"></i>'),
+        ('maladie_chronique',  "Maladie chronique",        ['oui','1','true'],  '<i class="fas fa-heartbeat"></i>'),
     ]:
         if col_r in df.columns:
             n = int((df[col_r].astype(str).str.lower().isin(vals_r)).sum())
-            RISQUES_DATA.append((f'<i class="fas fa-circle"></i>', lbl_r, n))
+            RISQUES_DATA.append((icon_r, lbl_r, n))
 
     if RISQUES_DATA:
         col_risk, _ = st.columns([1.1, 1])
@@ -802,6 +909,11 @@ with onglet1:
         "Maladie chronique":      "maladie_chronique",
         "Handicap physique":      "handicap_physique",
         "Suivi psychologique":    "suivi_psychologique",
+        "Poste de travail":       "poste_travail",
+        "Direction":              "direction",
+        "Département":            "departement",
+        "Service":                "service",
+        "Fonction":               "fonction",
     }
     VAR_OPTIONS = {"Sélectionner une variable": None}
     VAR_OPTIONS.update({k: v for k, v in VAR_OPTIONS_BASE.items() if v in df.columns})
@@ -833,7 +945,7 @@ with onglet1:
                     ax.text(x, y, f"{k}\n{v:.1f}%\n({counts_u[k]})",
                             ha='center', va='center', color='white',
                             fontsize=8, fontweight='bold', linespacing=1.3)
-            ax.set_title(f"Répartition des Employés\nde l'Entreprise {nom}\nselon : {sel_label}",
+            ax.set_title(f"Répartition des Employés\nselon : {sel_label}",
                          fontsize=11, fontweight='bold', color='#1e293b', pad=10)
             plt.tight_layout()
             _, cc, _ = st.columns([1,1,1])
@@ -863,7 +975,7 @@ with onglet1:
                           Patch(facecolor='#e2e8f0', edgecolor='#ccc',  label=f"{minority}")]
             ax.legend(handles=legend_el, loc='lower center',
                       bbox_to_anchor=(0.5,-0.12), ncol=2, fontsize=8, frameon=False)
-            ax.set_title(f"Répartition des Employés\nde l'Entreprise {nom}\nselon : {sel_label}",
+            ax.set_title(f"Répartition des Employés\nselon : {sel_label}",
                          fontsize=11, fontweight='bold', color='#1e293b', pad=10)
             plt.tight_layout()
             _, cc, _ = st.columns([1,1,1])
@@ -878,10 +990,17 @@ with onglet1:
                 order    = list(df['tranche_anciennete'].cat.categories)
                 counts_u = df[sel_col].value_counts().reindex(order).dropna()
                 pcts_u   = (counts_u / total_u * 100).round(1)
+            elif sel_col in ('poste_travail', 'direction', 'departement', 'service', 'fonction'):
+                # Tri par fréquence décroissante pour les colonnes organisationnelles
+                counts_u = df[sel_col].value_counts().sort_values(ascending=False)
+                pcts_u   = (counts_u / total_u * 100).round(1)
 
-            fig, ax  = plt.subplots(figsize=(8, 4))
+            n_bars = len(counts_u)
+            # Hauteur dynamique : plus de modalités → figure plus haute
+            fig_h  = max(4, min(4 + (n_bars - 6) * 0.35, 10)) if n_bars > 6 else 4
+            fig_w  = max(8, min(n_bars * 1.1, 18))
+            fig, ax  = plt.subplots(figsize=(fig_w, fig_h))
             fig.patch.set_facecolor('#f1f4f9'); ax.set_facecolor('#f1f4f9')
-            n_bars   = len(counts_u)
             cmap     = plt.cm.get_cmap('tab10', n_bars)
             colors_bar = [cmap(i) for i in range(n_bars)]
             bars = ax.bar(range(n_bars), pcts_u.values, color=colors_bar,
@@ -908,7 +1027,7 @@ with onglet1:
             ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False)
             ax.spines['left'].set_color('#cbd5e1'); ax.spines['bottom'].set_color('#cbd5e1')
             ax.set_ylim(0, max_v * 1.40)
-            ax.set_title(f"Répartition des Employés\nde l'Entreprise {nom}\nselon : {sel_label}",
+            ax.set_title(f"Répartition des Employés\nselon : {sel_label}",
                          fontsize=14, fontweight='bold', color='#1e293b', pad=16)
             plt.tight_layout()
             st.pyplot(fig, use_container_width=True)
@@ -967,12 +1086,11 @@ with onglet2:
 
     st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
 
-    score_brut   = (0.5 * pct_avere) + (0.3 * pct_pre) + (0.2 * pct_pas)
-    score_risque = round(100 - score_brut, 1)
-    nd = nom.replace('&','&amp;')
-    if   score_risque < 26: j_st,j_c,j_i,j_m = "Sain",     "#16a34a",'<i class="fas fa-check-circle"></i>',        f"L'entreprise {nd} se situe en zone saine. L'exposition au burnout est faible et la santé psychosociale est globalement préservée."
-    elif score_risque < 75: j_st,j_c,j_i,j_m = "Vigilance","#d97706",'<i class="fas fa-exclamation-triangle"></i>',f"L'entreprise {nd} se situe en zone de vigilance. L'exposition au burnout est significative et nécessite un suivi actif."
-    else:                   j_st,j_c,j_i,j_m = "Critique", "#dc2626",'<i class="fas fa-radiation-alt"></i>',       f"L'entreprise {nd} se situe en zone critique. L'exposition au burnout est élevée et requiert des actions immédiates."
+    score_brut   = (0.65 * pct_avere) + (0.3 * pct_pre) + (0.05 * pct_pas)
+    score_risque = round(score_brut, 1)
+    if   score_risque < 21: j_st,j_c,j_i,j_m = "Sain",     "#16a34a",'<i class="fas fa-check-circle"></i>',        "L'entreprise se situe en zone saine. L'exposition au burnout est faible et la santé psychosociale est globalement préservée."
+    elif score_risque < 46: j_st,j_c,j_i,j_m = "Vigilance","#d97706",'<i class="fas fa-exclamation-triangle"></i>',"L'entreprise se situe en zone de vigilance. L'exposition au burnout est significative et nécessite un suivi actif et des mesures préventives."
+    else:                   j_st,j_c,j_i,j_m = "Critique", "#dc2626",'<i class="fas fa-radiation-alt"></i>',       "L'entreprise se situe en zone critique. L'exposition au burnout est élevée et requiert des actions immédiates."
 
     col_j, col_dim = st.columns([1, 1])
 
@@ -989,13 +1107,13 @@ with onglet2:
             f'<span style="color:#16a34a;">SAIN</span><span style="color:#dc2626;">CRITIQUE</span></div>'
             f'<div style="position:relative;height:40px;width:100%;margin-bottom:5px;">'
             f'<div style="position:absolute;top:10px;left:0;width:100%;height:20px;'
-            f'background:linear-gradient(90deg,#16a34a 0%,#16a34a 26%,#d97706 26%,'
-            f'#d97706 75%,#dc2626 75%,#dc2626 100%);border-radius:10px;z-index:1;"></div>'
+            f'background:linear-gradient(90deg,#16a34a 0%,#16a34a 21%,#d97706 21%,'
+            f'#d97706 46%,#dc2626 46%,#dc2626 100%);border-radius:10px;z-index:1;"></div>'
             f'<div style="position:absolute;left:{min(score_risque,99)}%;top:0;width:6px;height:40px;'
             f'background:#1e293b;border:1px solid white;border-radius:3px;'
             f'transform:translateX(-50%);z-index:10;box-shadow:0 0 5px rgba(0,0,0,0.3);"></div></div>'
             f'<div style="display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;margin-bottom:20px;">'
-            f'<span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>'
+            f'<span>0</span><span>20</span><span>45</span><span>100</span></div>'
             f'<div style="text-align:center;margin:12px 0;">'
             f'<div style="font-size:52px;font-weight:700;color:{j_c};">'
             f'{score_risque}<span style="font-size:22px;color:#94a3b8;">/100</span></div></div>'
@@ -1089,6 +1207,11 @@ with onglet2:
         "Maladie chronique":      "maladie_chronique",
         "Handicap physique":      "handicap_physique",
         "Suivi psychologique":    "suivi_psychologique",
+        "Poste de travail":       "poste_travail",
+        "Direction":              "direction",
+        "Département":            "departement",
+        "Service":                "service",
+        "Fonction":               "fonction",
     }
     VAR_CROISE = {"Sélectionner une variable": None}
     VAR_CROISE.update({k: v for k, v in VAR_CROISE_BASE.items() if v in df.columns})
@@ -1163,10 +1286,12 @@ with onglet2:
         t_colonne.loc['TOTAL'] = t_colonne.sum(axis=0)
 
         viz_tab, lig_tab, col_tab = st.tabs([
-            "  Visualisation Graphique","  Tableau Croisé % Ligne","  Tableau Croisé % Colonne"])
+            "Visualisation Graphique", "Tableau Croisé % Ligne", "Tableau Croisé % Colonne"])
 
         with viz_tab:
-            fig2, ax2 = plt.subplots(figsize=(12, 7))
+            n_rows_biv = len(t_ligne.index)
+            fig_h_biv  = max(7, min(4 + n_rows_biv * 0.55, 18))
+            fig2, ax2 = plt.subplots(figsize=(12, fig_h_biv))
             fig2.patch.set_facecolor('#f1f4f9'); ax2.set_facecolor('white')
             data_plot = t_ligne[[c for c in ORDER if c in t_ligne.columns]].copy()
             data_plot.plot(kind='barh', stacked=True, ax=ax2,
@@ -1181,7 +1306,7 @@ with onglet2:
                     cumsum += pv
             ax2.set_xlabel('Pourcentage (%)', fontsize=13, fontweight='bold', color='#1e293b')
             ax2.set_ylabel(sel_c_label, fontsize=13, fontweight='bold', color='#1e293b')
-            ax2.set_title(f"Répartition du Burnout des Employés de l'Entreprise {nom}\nselon : {sel_c_label}",
+            ax2.set_title(f"Répartition du Burnout des Employés selon : {sel_c_label}",
                           fontsize=15, fontweight='bold', pad=20, color='#1e293b')
             ax2.legend(title='Niveau Burnout', loc='upper center',
                        bbox_to_anchor=(0.5,-0.12), ncol=3, frameon=False, fontsize=11)
