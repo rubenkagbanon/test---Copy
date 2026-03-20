@@ -27,23 +27,18 @@ def _get_inline_css() -> str:
   --bg-soft:    #eef2f7;
   --card:       #ffffff;
   --text:       #2f3d55;
-  --accent:     #dc2626;
-  --accent-soft:#fee2e2;
+  --accent:     #2f66b3;
+  --accent-soft:#e7eefb;
   --border:     #dde5f2;
 }
 
-/* ── Base typographie ────────────────────────────────────────────────────── */
+/* ── Base typographie : Plus Jakarta Sans sur tout l'app ────────────────── */
 html, body, [class*="css"], .stApp {
   font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
-#MainMenu, footer, header { visibility: hidden; }
-
 .stApp {
-  background-color: #F0F7FF;
-  background-image:
-    radial-gradient(ellipse 1000px 500px at 10% -5%, rgba(56,163,232,0.12) 0%, transparent 55%),
-    radial-gradient(ellipse 600px 400px at 90% 105%, rgba(249,115,22,0.08) 0%, transparent 50%);
+  background: linear-gradient(180deg, #f4f6fb 0%, var(--bg-soft) 100%);
   color: var(--text);
 }
 
@@ -85,19 +80,19 @@ html, body, [class*="css"], .stApp {
   display: inline-block;
   width: 4px;
   height: 22px;
-  background: linear-gradient(180deg, #dc2626 0%, #f87171 100%);
+  background: linear-gradient(180deg, #2f66b3 0%, #4f8be4 100%);
   border-radius: 2px;
   flex-shrink: 0;
 }
 
-/* ── Onglets ─────────────────────────────────────────────────────────────── */
+/* ── Onglets style Karasek ──────────────────────────────────────────────── */
 [data-baseweb="tab-list"] {
   background: #FFFFFF !important;
   border-radius: 12px !important;
   padding: 4px !important;
   gap: 3px !important;
   border: 1px solid #dde5f2 !important;
-  box-shadow: 0 2px 8px rgba(56,163,232,0.07) !important;
+  box-shadow: 0 2px 8px rgba(47,102,179,0.07) !important;
 }
 
 [data-baseweb="tab"] {
@@ -111,17 +106,24 @@ html, body, [class*="css"], .stApp {
 }
 
 [aria-selected="true"][data-baseweb="tab"] {
-  background: linear-gradient(135deg, #38A3E8, #2B8FD0) !important;
+  background: linear-gradient(135deg, #2f66b3, #4f8be4) !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
-  box-shadow: 0 3px 12px rgba(56,163,232,0.30) !important;
+  box-shadow: 0 3px 12px rgba(47,102,179,0.30) !important;
 }
 
 [data-baseweb="tab-highlight"],
 [data-baseweb="tab-border"] {
   display: none !important;
 }
-
+/* ── Bande décorative ───────────────────────────────────────────────────── */
+.top-strip {
+  width: 100%;
+  height: 6px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, #2f66b3 0%, #4f8be4 100%);
+}
 /* ── Boutons ─────────────────────────────────────────────────────────────── */
 .stButton > button {
   background: linear-gradient(135deg, #38A3E8, #2B8FD0) !important;
@@ -653,8 +655,8 @@ def kpi(icon, icon_color, icon_bg, bar_color, value, unit, sub, label):
 # ════════════════════════════════════════════════════════════
 st.markdown(
     '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">'
-    '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">',
-    unsafe_allow_html=True,
+    '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,400;1,9..144,600&display=swap" rel="stylesheet">',
+    unsafe_allow_html=True
 )
 _col_top, _col_back = st.columns([9, 1])
 with _col_top:
@@ -662,14 +664,14 @@ with _col_top:
         '<div style="display:flex;align-items:center;gap:12px;background:white;border-radius:12px;'
         'padding:14px 24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06),'
         '0 4px 12px rgba(30,64,175,0.08);border:1px solid #e8edf5;">'
-        '<div style="width:38px;height:38px;background:linear-gradient(135deg,#dc2626,#ef4444);'
+        '<div style="width:38px;height:38px;background:linear-gradient(135deg,#0369a1,#38bdf8);'
         'border-radius:10px;display:flex;align-items:center;justify-content:center;">'
-        '<i class="fas fa-fire" style="color:white;font-size:15px;"></i></div>'
+        '<i class="fas fa-clipboard-check" style="color:white;font-size:15px;"></i></div>'
         '<div>'
         '<div style="font-size:16px;font-weight:700;color:#1e293b;font-family:\'Plus Jakarta Sans\',sans-serif;">MBI — Maslach Burnout Inventory</div>'
         '<div style="font-size:11px;color:#64748b;margin-top:1px;font-family:\'Plus Jakarta Sans\',sans-serif;">Analyse du burnout professionnel · YODAN Analytics</div>'
         '</div></div>',
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
 with _col_back:
     st.write("")
@@ -677,7 +679,6 @@ with _col_back:
     if st.button("← Accueil", key="back_home_mbi", use_container_width=True):
         st.switch_page("app.py")
 
-st.markdown("<div style='margin-top:1rem;'></div>", unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════
 # SECTION IMPORT
