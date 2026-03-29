@@ -78,7 +78,8 @@ QUESTION_LABELS = {
     "Stress_Q8":  "Q8 - Ne pouviez pas maîtriser toutes les choses à faire ?",
     "Stress_Q9":  "Q9 - Avez pu contrôler vos difficultés ? (inversé)",
     "Stress_Q10": "Q10 - Dépassé(e) par les événements ?",
-    "Anciennete_cat": "Ancienneté",
+    "Anciennete_cat": "Tranche d'ancienneté",
+    "anciennete_cat": "Tranche d'ancienneté",
     "Tranche_Age": "Tranche d'âge",
     "taille_cat": "Taille",
     "poids_cat": "Poids",
@@ -364,7 +365,6 @@ def normaliser_colonnes(df_in: pd.DataFrame) -> pd.DataFrame:
         elif s in {"suivi_pour_un_probleme_psychologique", "suivi_psychologique", "suivi_psy", "probleme_psychologique"}:
             rename_map[col] = "Suivi_Psychologique"
         else:
-            # Colonnes CSV longues → Stress_Qi
             csv_match = {csv: q for csv, q in zip(CSV_Q_COLS, Q_COLS)}
             if s in csv_match:
                 rename_map[col] = csv_match[s]
@@ -444,9 +444,6 @@ def preparer_base(df_in: pd.DataFrame) -> pd.DataFrame:
     )
     df["niveau"] = df["niveau"].replace("", np.nan)
     return df
-
-
-
 
 
 def familles_filtres(df: pd.DataFrame):
@@ -765,17 +762,28 @@ with tab_pilotage:
             int((df_v["niveau"] == "Niveau de stress eleve").sum()),
         ],
     })
+    pie_df = pie_df[pie_df["Effectif"] > 0].copy()
+    pie_df["Pourcentage_txt"] = (
+        pie_df["Effectif"].div(max(pie_df["Effectif"].sum(), 1)).mul(100).map(lambda v: f"{v:.2f}".replace(".", ",") + "%")
+    )
     fig_pie = px.pie(
-        pie_df, names="Niveau", values="Effectif", hole=0.58,
-        color="Niveau",
+        pie_df, names="Niveau", values="Effectif", hole=0.42,
+        color="Niveau", custom_data=["Pourcentage_txt"],
         color_discrete_map={"Faible": PALETTE["teal"], "Modéré": PALETTE["orange"], "Élevé": PALETTE["red"]},
     )
-    style_figure(fig_pie, height=320)
+    style_figure(fig_pie, height=560)
     fig_pie.update_layout(
-        margin=dict(l=8, r=8, t=10, b=8),
-        legend=dict(orientation="h", y=-0.05, x=0.5, xanchor="center"),
+        margin=dict(l=12, r=12, t=10, b=28),
+        legend=dict(orientation="h", y=-0.08, x=0.5, xanchor="center", font=dict(size=14)),
     )
-    fig_pie.update_traces(textinfo="percent", textfont_size=14, marker=dict(line=dict(color="#ffffff", width=2)))
+    fig_pie.update_traces(
+        pull=[0.06, 0.09, 0.12][:len(pie_df)],
+        texttemplate="%{customdata[0]}",
+        textposition="outside",
+        textfont=dict(size=18, color=PALETTE["ink"]),
+        marker=dict(line=dict(color="#ffffff", width=3)),
+        hovertemplate="<b>%{label}</b><br>Effectif: %{value}<br>Pourcentage: %{customdata[0]}<extra></extra>",
+    )
     st.plotly_chart(fig_pie, use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -800,6 +808,7 @@ with tab_analyse:
         "taille_cm",
         "Taille_cm",
         "Age",
+        "Anciennete",
         "Poids_kg",
         "score_stress",
         "score_stress_total",
@@ -824,9 +833,17 @@ with tab_analyse:
         fig_uni = px.bar(freq, x="Modalite", y="Effectif", text="Pourcentage",
                         title=f"Distribution — {var_uni_label}", color="Modalite",
                         color_discrete_sequence=CHART_SEQUENCE)
-        fig_uni.update_traces(texttemplate="%{text:.1f}%")
+        fig_uni.update_traces(
+            texttemplate="%{text:.1f}%",
+            textposition="inside",
+            insidetextfont=dict(color="#ffffff", family="Arial Black", size=14),
+            insidetextanchor="middle",
+            textangle=0,
+            cliponaxis=False,
+        )
         style_bar_figure(fig_uni, height=420)
-        fig_uni.update_layout(showlegend=False, xaxis_title="")
+        fig_uni.update_layout(showlegend=False, xaxis_title="", uniformtext_minsize=11, uniformtext_mode="show")
+        fig_uni.update_traces(width=0.34)
         st.plotly_chart(fig_uni, use_container_width=True)
         st.dataframe(freq, use_container_width=True)
 
@@ -853,7 +870,11 @@ with tab_analyse:
                     )
                     style_figure(fig_sexe, height=360)
                     fig_sexe.update_layout(legend=dict(orientation="h", y=-0.08, x=0.5, xanchor="center"))
-                    fig_sexe.update_traces(textinfo="percent", textfont_size=14, marker=dict(line=dict(color="#ffffff", width=2)))
+                    fig_sexe.update_traces(
+                        textinfo="percent",
+                        textfont=dict(color="#ffffff", family="Arial Black", size=14),
+                        marker=dict(line=dict(color="#ffffff", width=2)),
+                    )
                     st.plotly_chart(fig_sexe, use_container_width=True)
                 with ux2:
                     s1, s2 = st.columns(2)
@@ -879,7 +900,14 @@ with tab_analyse:
         with l_uni:
             fig_uni = px.bar(freq, x="Pourcentage", y="Tranche_Age", orientation="h",
                             text="Pourcentage", title="Distribution des tranches d'âge")
-            fig_uni.update_traces(texttemplate="%{text:.1f}%", textposition="inside")
+            fig_uni.update_traces(
+                texttemplate="%{text:.1f}%",
+                textposition="inside",
+                insidetextfont=dict(color="#ffffff", family="Arial Black", size=14),
+                insidetextanchor="middle",
+                textangle=0,
+                cliponaxis=False,
+            )
             style_bar_figure(fig_uni, height=520)
             fig_uni.update_layout(showlegend=False, xaxis_title="Pourcentage (%)", yaxis_title="")
             st.plotly_chart(fig_uni, use_container_width=True)
@@ -906,9 +934,17 @@ with tab_analyse:
         fig_uni = px.bar(freq, x="Modalite", y="Effectif", text="Pourcentage",
                         title=f"Distribution — {var_uni_label}", color="Modalite",
                         color_discrete_sequence=CHART_SEQUENCE)
-        fig_uni.update_traces(texttemplate="%{text:.1f}%")
+        fig_uni.update_traces(
+            texttemplate="%{text:.1f}%",
+            textposition="inside",
+            insidetextfont=dict(color="#ffffff", family="Arial Black", size=14),
+            insidetextanchor="middle",
+            textangle=0,
+            cliponaxis=False,
+        )
         style_bar_figure(fig_uni, height=420)
-        fig_uni.update_layout(showlegend=False)
+        fig_uni.update_layout(showlegend=False, uniformtext_minsize=11, uniformtext_mode="show")
+        fig_uni.update_traces(width=0.34)
         st.plotly_chart(fig_uni, use_container_width=True)
         st.dataframe(freq, use_container_width=True)
 
@@ -917,10 +953,11 @@ with tab_analyse:
     # ── Analyses bivariées ───────────────────────────────────
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown("### Analyses bivariées")
+    bi_cols = [c for c in all_cols if c != "Anciennete"]
     bx1, bx2 = st.columns(2)
-    var_x       = bx1.selectbox("Variable 1", all_cols, index=0, key="bi_x", format_func=label_variable)
-    default_y   = 1 if len(all_cols) > 1 else 0
-    var_y       = bx2.selectbox("Variable 2", all_cols, index=default_y, key="bi_y", format_func=label_variable)
+    var_x       = bx1.selectbox("Variable 1", bi_cols, index=0, key="bi_x", format_func=label_variable)
+    default_y   = 1 if len(bi_cols) > 1 else 0
+    var_y       = bx2.selectbox("Variable 2", bi_cols, index=default_y, key="bi_y", format_func=label_variable)
     var_x_label = label_variable(var_x)
     var_y_label = label_variable(var_y)
 
@@ -938,32 +975,62 @@ with tab_analyse:
         num_y = pd.api.types.is_numeric_dtype(sy) and var_y not in Q_COLS
         table_pct = None
 
+        # ── Fonction de rendu unifiée : stacked bar vertical ──
+        def _render_stacked_bar(ct_pct, x_col, color_col, title, cat_orders=None):
+            grouped = ct_pct.reset_index().melt(
+                id_vars=x_col, var_name=color_col, value_name="Pourcentage"
+            )
+            grouped = grouped[grouped["Pourcentage"] > 0]
+            fig = px.bar(
+                grouped,
+                x="Pourcentage",
+                y=x_col,
+                color=color_col,
+                barmode="stack",
+                text="Pourcentage",
+                orientation="h",
+                color_discrete_sequence=BI_SEQUENCE,
+                category_orders=cat_orders or {},
+            )
+            fig.update_traces(
+                texttemplate="%{text:.1f}%",
+                textposition="inside",
+                insidetextanchor="middle",
+                textfont=dict(color="#ffffff", family="Arial Black", size=12),
+                textangle=0,
+                cliponaxis=False,
+            )
+            n_cats = grouped[x_col].nunique()
+            height = max(420, 56 * n_cats + 170)
+            style_stacked_figure(fig, height=height)
+            fig.update_layout(
+                title=title,
+                xaxis_title="Pourcentage (%)",
+                yaxis_title="",
+                xaxis=dict(range=[0, 100]),
+                legend=dict(orientation="h", y=-0.18, x=0.5, xanchor="center"),
+                uniformtext_minsize=9,
+                uniformtext_mode="show",
+            )
+            fig.update_yaxes(automargin=True)
+            st.plotly_chart(fig, use_container_width=True)
+
+        # ── Cas 1 : deux numériques ──
         if num_x and num_y:
             tmp = df_bi[[var_x, var_y]].apply(pd.to_numeric, errors="coerce").dropna()
             tmp["X_cl"] = pd.qcut(tmp[var_x], q=5, duplicates="drop").astype(str)
             tmp["Y_cl"] = pd.qcut(tmp[var_y], q=5, duplicates="drop").astype(str)
             ct     = pd.crosstab(tmp["X_cl"], tmp["Y_cl"])
             ct_pct = (ct.div(ct.sum(axis=1).replace(0, np.nan), axis=0) * 100).round(2).fillna(0)
-            grouped = ct_pct.reset_index().melt(id_vars="X_cl", var_name="Y_cl", value_name="Pourcentage")
-            fig_bi  = px.bar(
-                grouped, x="Pourcentage", y="X_cl", color="Y_cl", barmode="stack",
-                color_discrete_sequence=BI_SEQUENCE,
+            cat_orders = {"X_cl": sorted(ct_pct.index.tolist())}
+            _render_stacked_bar(
+                ct_pct, "X_cl", "Y_cl",
+                f"Classes de {var_x_label} × classes de {var_y_label}",
+                cat_orders,
             )
-            fig_bi.update_layout(title=f"Classes de {var_x_label} × classes de {var_y_label}")
-            fig_bi.update_traces(
-                texttemplate="%{x:.1f}%",
-                textposition="inside",
-                textfont_color="#ffffff",
-                textfont_size=11,
-                cliponaxis=False,
-            )
-            height = max(420, 34 * grouped["X_cl"].nunique() + 120)
-            style_stacked_figure(fig_bi, height=height)
-            fig_bi.update_xaxes(title="Pourcentage (%)", range=[0, 100])
-            fig_bi.update_yaxes(title="", automargin=True)
-            st.plotly_chart(fig_bi, use_container_width=True)
             table_pct = ct_pct.copy()
 
+        # ── Cas 2 : numérique × catégorielle ──
         elif num_x and not num_y:
             tmp = df_bi[[var_x, var_y]].copy()
             tmp[var_x] = pd.to_numeric(tmp[var_x], errors="coerce")
@@ -973,29 +1040,17 @@ with tab_analyse:
             ct_pct = (ct.div(ct.sum(axis=1).replace(0, np.nan), axis=0) * 100).round(2).fillna(0)
             if var_y in Q_COLS:
                 ct_pct = ct_pct.reindex(columns=LIKERT_ORDER)
-            grouped = ct_pct.reset_index().melt(id_vars="X_cl", var_name=var_y, value_name="Pourcentage")
-            cat_orders = {"X_cl": sorted(grouped["X_cl"].unique())}
+            cat_orders = {"X_cl": sorted(ct_pct.index.tolist())}
             if var_y in Q_COLS:
                 cat_orders[var_y] = LIKERT_ORDER
-            fig_bar = px.bar(
-                grouped, x="Pourcentage", y="X_cl", color=var_y, barmode="stack",
-                color_discrete_sequence=BI_SEQUENCE, category_orders=cat_orders,
+            _render_stacked_bar(
+                ct_pct, "X_cl", var_y,
+                f"Classes de {var_x_label} × {var_y_label}",
+                cat_orders,
             )
-            fig_bar.update_layout(title=f"Classes de {var_x_label} × {var_y_label}")
-            fig_bar.update_traces(
-                texttemplate="%{x:.1f}%",
-                textposition="inside",
-                textfont_color="#ffffff",
-                textfont_size=11,
-                cliponaxis=False,
-            )
-            height = max(420, 34 * grouped["X_cl"].nunique() + 120)
-            style_stacked_figure(fig_bar, height=height)
-            fig_bar.update_xaxes(title="Pourcentage (%)", range=[0, 100])
-            fig_bar.update_yaxes(title="", automargin=True)
-            st.plotly_chart(fig_bar, use_container_width=True)
             table_pct = ct_pct.copy()
 
+        # ── Cas 3 : catégorielle × numérique ──
         elif not num_x and num_y:
             tmp = df_bi[[var_x, var_y]].copy()
             tmp[var_y] = pd.to_numeric(tmp[var_y], errors="coerce")
@@ -1005,29 +1060,18 @@ with tab_analyse:
             ct_pct = (ct.div(ct.sum(axis=1).replace(0, np.nan), axis=0) * 100).round(2).fillna(0)
             if var_x in Q_COLS:
                 ct_pct = ct_pct.reindex(index=LIKERT_ORDER)
-            grouped = ct_pct.reset_index().melt(id_vars=var_x, var_name="Y_cl", value_name="Pourcentage")
-            cat_orders = {"Y_cl": sorted(grouped["Y_cl"].unique())}
+            cat_orders = {}
             if var_x in Q_COLS:
                 cat_orders[var_x] = LIKERT_ORDER
-            fig_bar = px.bar(
-                grouped, x="Pourcentage", y=var_x, color="Y_cl", barmode="stack",
-                color_discrete_sequence=BI_SEQUENCE, category_orders=cat_orders,
+            cat_orders["Y_cl"] = sorted(ct_pct.columns.tolist())
+            _render_stacked_bar(
+                ct_pct, var_x, "Y_cl",
+                f"{var_x_label} × classes de {var_y_label}",
+                cat_orders,
             )
-            fig_bar.update_layout(title=f"{var_x_label} × classes de {var_y_label}")
-            fig_bar.update_traces(
-                texttemplate="%{x:.1f}%",
-                textposition="inside",
-                textfont_color="#ffffff",
-                textfont_size=11,
-                cliponaxis=False,
-            )
-            height = max(420, 34 * grouped[var_x].nunique() + 120)
-            style_stacked_figure(fig_bar, height=height)
-            fig_bar.update_xaxes(title="Pourcentage (%)", range=[0, 100])
-            fig_bar.update_yaxes(title="", automargin=True)
-            st.plotly_chart(fig_bar, use_container_width=True)
             table_pct = ct_pct.copy()
 
+        # ── Cas 4 : deux catégorielles ──
         else:
             ct     = pd.crosstab(df_bi[var_x].astype(str), df_bi[var_y].astype(str))
             ct_pct = (ct.div(ct.sum(axis=1).replace(0, np.nan), axis=0) * 100).round(2).fillna(0)
@@ -1035,29 +1079,16 @@ with tab_analyse:
                 ct_pct = ct_pct.reindex(index=LIKERT_ORDER)
             if var_y in Q_COLS:
                 ct_pct = ct_pct.reindex(columns=LIKERT_ORDER)
-            grouped = ct_pct.reset_index().melt(id_vars=var_x, var_name=var_y, value_name="Pourcentage")
             cat_orders = {}
             if var_x in Q_COLS:
                 cat_orders[var_x] = LIKERT_ORDER
             if var_y in Q_COLS:
                 cat_orders[var_y] = LIKERT_ORDER
-            fig_group = px.bar(
-                grouped, x="Pourcentage", y=var_x, color=var_y, barmode="stack",
-                color_discrete_sequence=BI_SEQUENCE, category_orders=cat_orders,
+            _render_stacked_bar(
+                ct_pct, var_x, var_y,
+                f"{var_x_label} × {var_y_label}",
+                cat_orders,
             )
-            fig_group.update_layout(title=f"{var_x_label} × {var_y_label}")
-            fig_group.update_traces(
-                texttemplate="%{x:.1f}%",
-                textposition="inside",
-                textfont_color="#ffffff",
-                textfont_size=11,
-                cliponaxis=False,
-            )
-            height = max(420, 34 * grouped[var_x].nunique() + 120)
-            style_stacked_figure(fig_group, height=height)
-            fig_group.update_xaxes(title="Pourcentage (%)", range=[0, 100])
-            fig_group.update_yaxes(title="", automargin=True)
-            st.plotly_chart(fig_group, use_container_width=True)
             table_pct = ct_pct.copy()
 
         if table_pct is not None:
