@@ -1797,21 +1797,20 @@ with tab_generales:
         else:
             rps_color = "#991B1B"; rps_bg = "#FEE2E2"; rps_label = "❌ Risque élevé"
 
-        st.markdown(
+        with st.expander(" Score global de santé psychosociale", expanded=False):
+            st.markdown(
             f"""<div style="background:{rps_bg}; border:2px solid {rps_color}; border-radius:14px;
-                        padding:18px 28px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between;">
+                    padding:18px 28px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between;">
                 <div>
-                    <p style="margin:0; font-size:13px; color:{rps_color}; font-weight:600; text-transform:uppercase; letter-spacing:.05em; font-family:'Plus Jakarta Sans',sans-serif;">
-                        Score Global RPS Entreprise</p>
-                    <p style="margin:4px 0 0; font-size:28px; font-weight:800; color:{rps_color}; font-family:'Plus Jakarta Sans',sans-serif;">
-                        {global_rps:.1f} / 100</p>
-                    <p style="margin:2px 0 0; font-size:14px; color:{rps_color}; font-family:'Plus Jakarta Sans',sans-serif;">{rps_label}</p>
-                    <p style="margin:6px 0 0; font-size:11px; color:{rps_color}; opacity:.75; font-family:'Plus Jakarta Sans',sans-serif;">
-                        0 = aucun risque · 100 = risque maximal · Moyenne des 6 domaines (convention risque)</p>
-                </div>
-                <div style="font-size:48px;">🎯</div></div>""",
+                <p style="margin:0; font-size:13px; color:{rps_color}; font-weight:600; text-transform:uppercase; letter-spacing:.05em; font-family:'Plus Jakarta Sans',sans-serif;">
+                    Score de santé psychosociale au travail</p>
+                <p style="margin:4px 0 0; font-size:28px; font-weight:800; color:{rps_color}; font-family:'Plus Jakarta Sans',sans-serif;">
+                    {global_rps:.1f} / 100</p>
+                <p style="margin:2px 0 0; font-size:14px; color:{rps_color}; font-family:'Plus Jakarta Sans',sans-serif;">{rps_label}</p>
+                <p style="margin:6px 0 0; font-size:11px; color:{rps_color}; opacity:.75; font-family:'Plus Jakarta Sans',sans-serif;"></p>
+                </div>""",
             unsafe_allow_html=True,
-        )
+            )
 
     # ── Radar Charts ──────────────────────────────────────────────────────────
     st.markdown('<div class="section-title">Radar RPS — Vue d\'ensemble</div>', unsafe_allow_html=True)
@@ -1840,7 +1839,7 @@ with tab_generales:
             f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
             f'<span style="font-size:18px;">{ico}</span>'
             f'<span style="font-weight:700;color:{tc};font-size:14px;font-family:\'Plus Jakarta Sans\',sans-serif;">{lbl}</span>'
-            f'<span style="margin-left:auto;font-weight:800;color:{tc};font-size:15px;">{domain_risk:.1f}/100</span>'
+            f'<span style="margin-left:auto;font-weight:800;color:{tc};font-size:15px;">{domain_risk:.1f}</span>'
             f'</div><p style="margin:0;font-size:11px;color:{tc};opacity:.85;">{desc}</p></div>'
         )
 
@@ -1857,7 +1856,7 @@ with tab_generales:
                 r=d_values + [d_values[0]], theta=d_labels_wrap + [d_labels_wrap[0]],
                 fill="toself", fillcolor="rgba(239,68,68,0.18)",
                 line=dict(color="#EF4444", width=2.5), name="Score risque domaine",
-                hovertemplate="<b>%{theta}</b><br>Score risque: %{r:.1f}/100<extra></extra>",
+                hovertemplate="<b>%{theta}</b><br>Score risque: %{r:.1f}<extra></extra>",
             ))
             fig_radar_domain.update_layout(
                 polar=dict(radialaxis=dict(visible=True, range=[0, 100], tickfont=dict(size=9), tickvals=[0, 25, 50, 75, 100]), angularaxis=dict(tickfont=dict(size=10))),
@@ -1867,7 +1866,7 @@ with tab_generales:
             )
             st.plotly_chart(fig_radar_domain, use_container_width=True)
 
-            st.markdown('<p style="font-size:12px;font-weight:700;color:#374151;margin:6px 0 4px;text-transform:uppercase;letter-spacing:.04em;font-family:\'Plus Jakarta Sans\',sans-serif;">🔍 Interprétation des 6 domaines</p>', unsafe_allow_html=True)
+            st.markdown('<p style="font-size:12px;font-weight:700;color:#374151;margin:6px 0 4px;text-transform:uppercase;letter-spacing:.04em;font-family:\'Plus Jakarta Sans\',sans-serif;">  Interprétation des 6 domaines</p>', unsafe_allow_html=True)
             interp_html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'
             for d_name, d_val in zip(d_labels, d_values):
                 interp_html += _domain_interpret_html(d_name, d_val)
@@ -1880,8 +1879,8 @@ with tab_generales:
             interp_html += (
                 f'<div style="background:#F1F5F9;border-radius:10px;padding:10px 14px;margin-top:8px;">'
                 f'<p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#1E3A5F;font-family:\'Plus Jakarta Sans\',sans-serif;">📌 Points clés</p>'
-                f'<p style="margin:2px 0;font-size:12px;color:#374151;">🔴 <b>Domaine prioritaire :</b> <span style="color:{worst_tc};font-weight:600;">{worst_domain}</span> ({worst_val:.1f}/100 — {worst_lbl})</p>'
-                f'<p style="margin:2px 0;font-size:12px;color:#374151;">🟢 <b>Domaine le plus sain :</b> <span style="color:{best_tc};font-weight:600;">{best_domain}</span> ({best_val:.1f}/100 — {best_lbl})</p>'
+                f'<p style="margin:2px 0;font-size:12px;color:#374151;">🔴 <b>Domaine prioritaire :</b> <span style="color:{worst_tc};font-weight:600;">{worst_domain}</span> ({worst_val:.1f} — {worst_lbl})</p>'
+                f'<p style="margin:2px 0;font-size:12px;color:#374151;">🟢 <b>Domaine le plus sain :</b> <span style="color:{best_tc};font-weight:600;">{best_domain}</span> ({best_val:.1f} — {best_lbl})</p>'
                 f'</div>'
             )
             st.markdown(interp_html, unsafe_allow_html=True)
@@ -1905,7 +1904,7 @@ with tab_generales:
                 r=sub_risk_vals + [sub_risk_vals[0]], theta=sub_short_labels + [sub_short_labels[0]],
                 fill="toself", fillcolor="rgba(251,146,60,0.18)",
                 line=dict(color="#FB923C", width=2.5), name="Score risque sous-domaine",
-                hovertemplate="<b>%{theta}</b><br>Score risque: %{r:.1f}/100<extra></extra>",
+                hovertemplate="<b>%{theta}</b><br>Score risque: %{r:.1f}<extra></extra>",
             ))
             fig_radar_sub.add_trace(go.Scatterpolar(r=[30] * (len(sub_short_labels) + 1), theta=sub_short_labels + [sub_short_labels[0]], mode="lines", line=dict(color="#10B981", width=2, dash="solid"), name="Seuil 30%", showlegend=True))
             fig_radar_sub.add_trace(go.Scatterpolar(r=[30] * (len(sub_short_labels) + 1), theta=sub_short_labels + [sub_short_labels[0]], fill="toself", fillcolor="rgba(16,185,129,0.15)", line=dict(color="rgba(16,185,129,0)", width=0), name="Zone favorable (<30%)", showlegend=True, hoverinfo="skip"))
@@ -1925,11 +1924,11 @@ with tab_generales:
                     f'<div style="background:{d_bg};border:1px solid {d_bc};border-radius:10px;padding:8px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">'
                     f'<span style="font-size:20px;">{d_ico}</span>'
                     f'<div><p style="margin:0;font-size:12px;color:{d_tc};font-weight:700;font-family:\'Plus Jakarta Sans\',sans-serif;">Domaine sélectionné : {selected_radar_domain}</p>'
-                    f'<p style="margin:0;font-size:13px;color:{d_tc};font-weight:800;font-family:\'Plus Jakarta Sans\',sans-serif;">Score risque global : {domain_risk_selected:.1f}/100 — {d_lbl}</p></div></div>',
+                    f'<p style="margin:0;font-size:13px;color:{d_tc};font-weight:800;font-family:\'Plus Jakarta Sans\',sans-serif;">Score risque global : {domain_risk_selected:.1f} — {d_lbl}</p></div></div>',
                     unsafe_allow_html=True,
                 )
 
-            st.markdown('<p style="font-size:12px;font-weight:700;color:#374151;margin:4px 0;text-transform:uppercase;letter-spacing:.04em;font-family:\'Plus Jakarta Sans\',sans-serif;">🔍 Détail des sous-domaines</p>', unsafe_allow_html=True)
+            st.markdown('<p style="font-size:12px;font-weight:700;color:#374151;margin:4px 0;text-transform:uppercase;letter-spacing:.04em;font-family:\'Plus Jakarta Sans\',sans-serif;"> Détail des sous-domaines</p>', unsafe_allow_html=True)
             sub_interp_html = ""
             for full_lbl, risk_val in zip(sub_full_labels, sub_risk_vals):
                 z_val = subdomain_stats.get(full_lbl, {}).get("z_score", 0.0)
@@ -1954,8 +1953,8 @@ with tab_generales:
                 sub_interp_html += (
                     f'<div style="background:#F1F5F9;border-radius:8px;padding:8px 12px;margin-top:6px;">'
                     f'<p style="margin:0 0 3px;font-size:12px;font-weight:700;color:#1E3A5F;font-family:\'Plus Jakarta Sans\',sans-serif;">📌 Résumé</p>'
-                    f'<p style="margin:1px 0;font-size:11px;color:#374151;">🔴 <b>Point de vigilance :</b> {worst_sub} ({worst_sub_val:.1f}/100)</p>'
-                    f'<p style="margin:1px 0;font-size:11px;color:#374151;">🟢 <b>Point fort :</b> {best_sub} ({best_sub_val:.1f}/100)</p>'
+                    f'<p style="margin:1px 0;font-size:11px;color:#374151;">🔴 <b>Point de vigilance :</b> {worst_sub} ({worst_sub_val:.1f})</p>'
+                    f'<p style="margin:1px 0;font-size:11px;color:#374151;">🟢 <b>Point fort :</b> {best_sub} ({best_sub_val:.1f})</p>'
                 )
                 if below_30:
                     sub_interp_html += f'<p style="margin:1px 0;font-size:11px;color:#374151;">✅ <b>{len(below_30)} sous-domaine(s)</b> en zone favorable (≤30%) : {", ".join(below_30)}</p>'
