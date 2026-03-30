@@ -1467,7 +1467,7 @@ def _style_domain_table(df: pd.DataFrame) -> "pd.io.formats.style.Styler":
         return [f"background-color: {palette[col]}; color: #111;" if col in ORDER_LEVELS else "" for col in row.index]
     fmt = {lvl: "{:.1f}%" for lvl in ORDER_LEVELS}
     if "Total" in df.columns:
-        fmt["Total"] = "{:.1f}%"
+        fmt["Total"] = "{:.0f}%"
     return df.round(1).style.apply(_style_row, axis=1).format(fmt)
 
 
@@ -1480,7 +1480,7 @@ def _style_bivariate_table(ct: pd.DataFrame, subdomain_label: str) -> "pd.io.for
     level_cols = [c for c in ORDER_LEVELS if c in ct.columns]
     fmt = {lvl: "{:.1f}%" for lvl in level_cols}
     if "Total" in ct.columns:
-        fmt["Total"] = "{:.1f}%"
+        fmt["Total"] = "{:.0f}%"
     return ct.round(1).style.apply(_style_row, axis=1).format(fmt)
 
 
