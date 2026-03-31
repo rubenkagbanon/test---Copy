@@ -135,19 +135,19 @@ else:             statut, sc, sc_bg, sc_bd = "CRITIQUE",  "#dc2626", "#fef2f2", 
 
 msgs = {
     "EXCELLENT": ("fas fa-shield-alt",          "Environnement de travail sain",
-                  "Les indicateurs psychosociaux sont au vert. Les pratiques de prévention sont bien ancrées. "
-                  "Maintenez cette dynamique par des évaluations régulières et continuez à impliquer les collaborateurs."),
+                "Les indicateurs psychosociaux sont au vert. Les pratiques de prévention sont bien ancrées. "
+                "Maintenez cette dynamique par des évaluations régulières et continuez à impliquer les collaborateurs."),
     "BON":       ("fas fa-chart-line",           "Situation globalement favorable",
-                  "Le niveau de risques psychosociaux est maîtrisé dans l'ensemble. Quelques axes d'amélioration "
-                  "restent à explorer, notamment sur les dimensions stress et épuisement professionnel. "
-                  "Une attention particulière aux résultats MBI et COPSOQ permettra d'affiner les actions prioritaires."),
+                "Le niveau de risques psychosociaux est maîtrisé dans l'ensemble. Quelques axes d'amélioration "
+                "restent à explorer, notamment sur les dimensions stress et épuisement professionnel. "
+                "Une attention particulière aux résultats MBI et COPSOQ permettra d'affiner les actions prioritaires."),
     "VIGILANCE": ("fas fa-exclamation-triangle", "Des signaux à ne pas négliger",
-                  "Plusieurs indicateurs révèlent une exposition modérée aux risques psychosociaux. "
-                  "Il est recommandé d'engager rapidement une analyse approfondie par dimension et de mettre "
-                  "en place un plan d'action ciblé avec un suivi mensuel."),
+                "Plusieurs indicateurs révèlent une exposition modérée aux risques psychosociaux. "
+                "Il est recommandé d'engager rapidement une analyse approfondie par dimension et de mettre "
+                "en place un plan d'action ciblé avec un suivi mensuel."),
     "CRITIQUE":  ("fas fa-exclamation-circle",   "Situation nécessitant une intervention urgente",
-                  "Les indicateurs sont en zone critique. Une intervention immédiate est nécessaire : audit RPS complet, "
-                  "entretiens individuels et collectifs, et mise en place d'un comité de suivi dédié."),
+                "Les indicateurs sont en zone critique. Une intervention immédiate est nécessaire : audit RPS complet, "
+                "entretiens individuels et collectifs, et mise en place d'un comité de suivi dédié."),
 }
 m_icon, m_title, m_body = msgs[statut]
 

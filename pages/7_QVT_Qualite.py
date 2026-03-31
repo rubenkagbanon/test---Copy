@@ -298,11 +298,11 @@ def add_derived_columns(df):
     if age_col and "TrancheAge" not in out.columns:
         age = pd.to_numeric(out[age_col], errors="coerce")
         out["TrancheAge"] = pd.cut(age, bins=[0,20,30,40,50,60,np.inf],
-                                   labels=["<20","20-30","31-40","41-50","51-60","60+"], right=False)
+                                labels=["<20","20-30","31-40","41-50","51-60","60+"], right=False)
     if anc_col and "Classe_Anciennete" not in out.columns:
         anc = pd.to_numeric(out[anc_col], errors="coerce")
         out["Classe_Anciennete"] = pd.cut(anc, bins=[0,2,5,10,20,np.inf],
-                                          labels=["0-2 ans","3-5 ans","6-10 ans","11-20 ans","21+ ans"], include_lowest=True)
+                                        labels=["0-2 ans","3-5 ans","6-10 ans","11-20 ans","21+ ans"], include_lowest=True)
     if poids_col and taille_col and "IMC" not in out.columns:
         p = pd.to_numeric(out[poids_col], errors="coerce")
         t = pd.to_numeric(out[taille_col], errors="coerce")
@@ -310,7 +310,7 @@ def add_derived_columns(df):
     if (imc_col or "IMC" in out.columns) and "Categorie_IMC" not in out.columns:
         imc_vals = pd.to_numeric(out.get(imc_col, out.get("IMC", pd.Series(dtype=float))), errors="coerce")
         out["Categorie_IMC"] = pd.cut(imc_vals, bins=[-np.inf,18.5,24.9,29.9,np.inf],
-                                      labels=["Sous-poids","Normal","Surpoids","Obésité"])
+                                    labels=["Sous-poids","Normal","Surpoids","Obésité"])
     # Ensure a standard set of socio columns exist (copy from detected variants)
     standard_socio = [
         "Taille", "Poids", "Departement", "Direction", "Anciennete",
@@ -346,9 +346,9 @@ def kpi_card(label, value, color=C["blue"], suffix="", decimals=0, sub=""):
     sub_html = f'<div class="kpi-sub" style="font-size:0.72rem;color:#9AAFBF;margin-top:6px">{sub}</div>' if sub else ""
     st.markdown(f"""
     <div class="kpi-card">
-      <div class="kpi-label">{label}</div>
-      <div class="kpi-value" style="color:{color};">{disp}</div>
-      {sub_html}
+    <div class="kpi-label">{label}</div>
+    <div class="kpi-value" style="color:{color};">{disp}</div>
+    {sub_html}
     </div>""", unsafe_allow_html=True)
 
 def semi_gauge(pct, color, label, sublabel, key="", badge_override=None):
@@ -378,12 +378,12 @@ def semi_gauge(pct, color, label, sublabel, key="", badge_override=None):
     <div class="gauge-card">
         <svg width="176" height="96" style="display:block;margin:0 auto;">
             <path d="M {cx-r} {cy} A {r} {r} 0 0 1 {cx+r} {cy}"
-                  fill="none" stroke="#EDF5FD" stroke-width="12" stroke-linecap="round"/>
+                fill="none" stroke="#EDF5FD" stroke-width="12" stroke-linecap="round"/>
             {'<path d="' + arc + '" fill="none" stroke="' + color + '" stroke-width="12" stroke-linecap="round"/>' if arc else ''}
             <text x="{cx}" y="76" text-anchor="middle" font-size="23" font-weight="800"
-                  fill="{color}" font-family="DM Serif Display, serif">{pct:.0f}</text>
+                fill="{color}" font-family="DM Serif Display, serif">{pct:.0f}</text>
             <text x="{cx}" y="92" text-anchor="middle" font-size="10" fill="#6B88A8"
-                  font-family="Plus Jakarta Sans">%</text>
+                font-family="Plus Jakarta Sans">%</text>
         </svg>
         <div style="font-weight:700;font-size:0.82rem;color:{C['text']};line-height:1.35;
                     text-align:center;margin-top:0.15rem;">{label}</div>
@@ -471,8 +471,8 @@ def stacked_pct_chart(crosstab: pd.DataFrame, title: str, y_title: str) -> go.Fi
         barmode="stack",
         title=dict(text=title, font=dict(family="DM Serif Display, serif", size=13, color=C["text"]), x=0.01),
     xaxis=dict(range=[0, 100], title="Pourcentage (%)", ticksuffix="%",
-           showgrid=True, gridcolor="#F5F7FA", zeroline=False,
-           tickfont=dict(color=C["text"], size=11)),
+        showgrid=True, gridcolor="#F5F7FA", zeroline=False,
+        tickfont=dict(color=C["text"], size=11)),
     yaxis=dict(title=y_title, tickfont=dict(color=C["text"], size=11), showgrid=False),
         legend_title="Réponses",
         plot_bgcolor="#FAFCFF", paper_bgcolor="rgba(0,0,0,0)",
@@ -490,7 +490,7 @@ def bar_univarie(series: pd.Series, var_label: str) -> go.Figure:
     counts["pct"] = counts["n"] / total * 100
     # Mid-tone palette for category bars
     palette = ["#4A90E2", "#F39C6B", "#A78BFA", "#66BB6A", "#F2B86B",
-               "#4EC0D9", "#FB9A6B", "#84CC6A"]
+            "#4EC0D9", "#FB9A6B", "#84CC6A"]
     fig = go.Figure()
     for i, row in counts.iterrows():
         # show percent and effectif inside the bar in white and bold, e.g. "56.0% (112)"
@@ -854,9 +854,9 @@ def main():
             # Render RISQUES header and items as raw HTML via components.html to avoid Markdown parsing
             header_html = textwrap.dedent("""
             <style>
-              .q-section { padding-top: 8px; }
-              .q-items { margin-top: 18px; display:block; }
-              .q-items .item-row { margin-bottom: 18px; padding: 10px 12px; border-radius:10px; background: #fff; box-shadow:0 6px 18px rgba(16,24,40,0.03); }
+            .q-section { padding-top: 8px; }
+            .q-items { margin-top: 18px; display:block; }
+            .q-items .item-row { margin-bottom: 18px; padding: 10px 12px; border-radius:10px; background: #fff; box-shadow:0 6px 18px rgba(16,24,40,0.03); }
             </style>
             <div class="risk-card q-section">
                 <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.6rem;">
@@ -906,9 +906,9 @@ def main():
 
             header_html = textwrap.dedent("""
             <style>
-              .q-section { padding-top: 8px; }
-              .q-items { margin-top: 18px; display:block; }
-              .q-items .item-row { margin-bottom: 18px; padding: 10px 12px; border-radius:10px; background: #fff; box-shadow:0 6px 18px rgba(16,24,40,0.03); }
+            .q-section { padding-top: 8px; }
+            .q-items { margin-top: 18px; display:block; }
+            .q-items .item-row { margin-bottom: 18px; padding: 10px 12px; border-radius:10px; background: #fff; box-shadow:0 6px 18px rgba(16,24,40,0.03); }
             </style>
             <div class="strength-card q-section">
                 <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.6rem;">

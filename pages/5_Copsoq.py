@@ -667,216 +667,216 @@ def _get_inline_css() -> str:
 
 /* ── Variables ─────────────────────────────────────────────────────────── */
 :root {
-  --bg-soft:    #eef2f7;
-  --card:       #ffffff;
-  --text:       #2f3d55;
-  --accent:     #2f66b3;
-  --accent-soft:#e7eefb;
-  --border:     #dde5f2;
+--bg-soft:    #eef2f7;
+--card:       #ffffff;
+--text:       #2f3d55;
+--accent:     #2f66b3;
+--accent-soft:#e7eefb;
+--border:     #dde5f2;
 }
 
 /* ── Base typographie : Plus Jakarta Sans sur tout l'app ────────────────── */
 html, body, [class*="css"], .stApp {
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
 .stApp {
-  background: linear-gradient(180deg, #f4f6fb 0%, var(--bg-soft) 100%);
-  color: var(--text);
+background: linear-gradient(180deg, #f4f6fb 0%, var(--bg-soft) 100%);
+color: var(--text);
 }
 
 /* ── Grands titres de section : Fraunces italic (style Karasek) ─────────── */
 .section-title {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  font-family: 'Fraunces', Georgia, serif !important;
-  font-size: 1.25rem !important;
-  font-style: italic !important;
-  font-weight: 400 !important;
-  color: #0F2340 !important;
-  margin: 1.6rem 0 1rem !important;
-  padding-bottom: 0.65rem !important;
-  border-bottom: 2px solid #dde5f2 !important;
+display: flex;
+align-items: center;
+gap: 0.7rem;
+font-family: 'Fraunces', Georgia, serif !important;
+font-size: 1.25rem !important;
+font-style: italic !important;
+font-weight: 400 !important;
+color: #0F2340 !important;
+margin: 1.6rem 0 1rem !important;
+padding-bottom: 0.65rem !important;
+border-bottom: 2px solid #dde5f2 !important;
 }
 
 .section-title::before {
-  content: '';
-  display: inline-block;
-  width: 4px;
-  height: 22px;
-  background: linear-gradient(180deg, #2f66b3 0%, #4f8be4 100%);
-  border-radius: 2px;
-  flex-shrink: 0;
+content: '';
+display: inline-block;
+width: 4px;
+height: 22px;
+background: linear-gradient(180deg, #2f66b3 0%, #4f8be4 100%);
+border-radius: 2px;
+flex-shrink: 0;
 }
 
 /* ── Onglets style Karasek ──────────────────────────────────────────────── */
 [data-baseweb="tab-list"] {
-  background: #FFFFFF !important;
-  border-radius: 12px !important;
-  padding: 4px !important;
-  gap: 3px !important;
-  border: 1px solid #dde5f2 !important;
-  box-shadow: 0 2px 8px rgba(47,102,179,0.07) !important;
+background: #FFFFFF !important;
+border-radius: 12px !important;
+padding: 4px !important;
+gap: 3px !important;
+border: 1px solid #dde5f2 !important;
+box-shadow: 0 2px 8px rgba(47,102,179,0.07) !important;
 }
 
 [data-baseweb="tab"] {
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
-  font-weight: 600 !important;
-  font-size: 0.88rem !important;
-  color: #6B88A8 !important;
-  border-radius: 9px !important;
-  padding: 0.5rem 1.4rem !important;
-  transition: all 0.2s !important;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
+font-weight: 600 !important;
+font-size: 0.88rem !important;
+color: #6B88A8 !important;
+border-radius: 9px !important;
+padding: 0.5rem 1.4rem !important;
+transition: all 0.2s !important;
 }
 
 [aria-selected="true"][data-baseweb="tab"] {
-  background: linear-gradient(135deg, #2f66b3, #4f8be4) !important;
-  color: #FFFFFF !important;
-  font-weight: 700 !important;
-  box-shadow: 0 3px 12px rgba(47,102,179,0.30) !important;
+background: linear-gradient(135deg, #2f66b3, #4f8be4) !important;
+color: #FFFFFF !important;
+font-weight: 700 !important;
+box-shadow: 0 3px 12px rgba(47,102,179,0.30) !important;
 }
 
 [data-baseweb="tab-highlight"],
 [data-baseweb="tab-border"] {
-  display: none !important;
+display: none !important;
 }
 
 /* ── Bande décorative ───────────────────────────────────────────────────── */
 .top-strip {
-  width: 100%;
-  height: 6px;
-  border-radius: 8px;
-  margin-bottom: 12px;
-  background: linear-gradient(90deg, #2f66b3 0%, #4f8be4 100%);
+width: 100%;
+height: 6px;
+border-radius: 8px;
+margin-bottom: 12px;
+background: linear-gradient(90deg, #2f66b3 0%, #4f8be4 100%);
 }
 
 .section-gap { height: 16px; }
 
 /* ── Grille KPI ─────────────────────────────────────────────────────────── */
 .kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 8px;
-  align-items: start;
+display: grid;
+grid-template-columns: repeat(4, minmax(0, 1fr));
+gap: 12px;
+margin-top: 8px;
+align-items: start;
 }
 
 /* ── Cartes KPI ─────────────────────────────────────────────────────────── */
 .card-container {
-  background-color: #ffffff;
-  padding: 20px;
-  border-radius: 20px;
-  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.05);
-  border: 1px solid #f0f2f6;
-  width: 100%;
-  height: 4cm;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  text-align: center;
-  transition: transform 0.22s ease, box-shadow 0.22s ease;
+background-color: #ffffff;
+padding: 20px;
+border-radius: 20px;
+box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.05);
+border: 1px solid #f0f2f6;
+width: 100%;
+height: 4cm;
+box-sizing: border-box;
+display: flex;
+flex-direction: column;
+justify-content: space-between;
+align-items: center;
+text-align: center;
+transition: transform 0.22s ease, box-shadow 0.22s ease;
 }
 
 .card-container:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(47,102,179,0.12);
+transform: translateY(-3px);
+box-shadow: 0 8px 24px rgba(47,102,179,0.12);
 }
 
 .card-title {
-  color: #6e7785;
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
-  font-size: clamp(11px, 1.1vw, 14px);
-  font-weight: 500;
-  margin: 0;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-  max-width: 100%;
-  line-height: 1.2;
+color: #6e7785;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
+font-size: clamp(11px, 1.1vw, 14px);
+font-weight: 500;
+margin: 0;
+white-space: normal;
+overflow-wrap: anywhere;
+word-break: break-word;
+max-width: 100%;
+line-height: 1.2;
 }
 
 .card-value {
-  color: #0f0f11;
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
-  font-size: 30px !important;
-  font-weight: 800 !important;
-  margin: -8px 0 2px 0;
-  line-height: 1;
-  letter-spacing: -0.03em;
+color: #0f0f11;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
+font-size: 30px !important;
+font-weight: 800 !important;
+margin: -8px 0 2px 0;
+line-height: 1;
+letter-spacing: -0.03em;
 }
 
 .kpi-drop-fade { animation: kpiDropFade 900ms ease-out; }
 
 .card-center-image {
-  width: 42px; height: 42px; object-fit: contain;
-  display: block; margin: 6px auto;
+width: 42px; height: 42px; object-fit: contain;
+display: block; margin: 6px auto;
 }
 
 .card-footer {
-  font-size: 12px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 2px; color: #6e7785;
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
-  min-height: 42px; width: 100%;
+font-size: 12px;
+display: flex; flex-direction: column; align-items: center; justify-content: center;
+gap: 2px; color: #6e7785;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
+min-height: 42px; width: 100%;
 }
 
 .icon-blue   { color: #007bff; font-size: 14px; }
 .icon-orange { color: #ff8b3d; font-size: 14px; }
 
 .card-footer-image {
-  width: 42px; height: 42px; object-fit: contain;
-  display: block; max-width: 100%; max-height: 100%;
+width: 42px; height: 42px; object-fit: contain;
+display: block; max-width: 100%; max-height: 100%;
 }
 
 /* ── Grille RPS ─────────────────────────────────────────────────────────── */
 .rps-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px; margin-top: 6px;
+display: grid;
+grid-template-columns: repeat(3, minmax(0, 1fr));
+gap: 14px; margin-top: 6px;
 }
 
 .rps-card {
-  background: #ffffff; border: 1px solid #f0f2f6; border-radius: 14px;
-  box-shadow: 0px 4px 15px rgba(0,0,0,0.05); min-height: 240px; padding: 14px;
+background: #ffffff; border: 1px solid #f0f2f6; border-radius: 14px;
+box-shadow: 0px 4px 15px rgba(0,0,0,0.05); min-height: 240px; padding: 14px;
 }
 
 .rps-card-title {
-  margin: 0 0 12px 0; color: #334866;
-  font-size: 16px; font-weight: 700;
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
+margin: 0 0 12px 0; color: #334866;
+font-size: 16px; font-weight: 700;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
 .rps-select {
-  width: 100%; display: block; box-sizing: border-box; min-height: 42px;
-  margin: 0 0 12px 0; padding: 10px 40px 10px 12px;
-  border: 1px solid #dbe3f0; border-radius: 10px; background: #ffffff;
-  color: #334866; font-size: 14px; font-weight: 600;
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04); appearance: none;
-  -webkit-appearance: none; -moz-appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, #5d6f8c 50%), linear-gradient(135deg, #5d6f8c 50%, transparent 50%);
-  background-position: calc(100% - 18px) calc(50% - 2px), calc(100% - 12px) calc(50% - 2px);
-  background-size: 6px 6px, 6px 6px; background-repeat: no-repeat;
+width: 100%; display: block; box-sizing: border-box; min-height: 42px;
+margin: 0 0 12px 0; padding: 10px 40px 10px 12px;
+border: 1px solid #dbe3f0; border-radius: 10px; background: #ffffff;
+color: #334866; font-size: 14px; font-weight: 600;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
+box-shadow: 0 1px 4px rgba(0,0,0,0.04); appearance: none;
+-webkit-appearance: none; -moz-appearance: none;
+background-image: linear-gradient(45deg, transparent 50%, #5d6f8c 50%), linear-gradient(135deg, #5d6f8c 50%, transparent 50%);
+background-position: calc(100% - 18px) calc(50% - 2px), calc(100% - 12px) calc(50% - 2px);
+background-size: 6px 6px, 6px 6px; background-repeat: no-repeat;
 }
 
 .rps-line {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 0; border-bottom: 1px solid #eef2f7;
-  color: #2f3d55; font-size: 14px;
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
+display: flex; justify-content: space-between; align-items: center;
+padding: 8px 0; border-bottom: 1px solid #eef2f7;
+color: #2f3d55; font-size: 14px;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
 .rps-score-value { display: inline-block; animation: rpsScoreAppear 1600ms ease-out; }
 
 .rps-interpret-row {
-  border-radius: 8px; padding: 8px 10px !important; margin-bottom: 6px;
-  border: 1px solid transparent;
-  animation: interpretationFade 520ms ease-out both;
-  animation-delay: var(--fade-delay, 0ms);
-  will-change: opacity, transform;
+border-radius: 8px; padding: 8px 10px !important; margin-bottom: 6px;
+border: 1px solid transparent;
+animation: interpretationFade 520ms ease-out both;
+animation-delay: var(--fade-delay, 0ms);
+will-change: opacity, transform;
 }
 
 .rps-interpret-row.interpret-green  { background: #eaf8ef; border-color: #b8e6c8; }
@@ -886,101 +886,101 @@ html, body, [class*="css"], .stApp {
 .rps-line-group { margin-bottom: 4px; }
 
 .rps-interpret-line {
-  align-items: center; justify-content: space-between; gap: 8px; flex-wrap: nowrap;
+align-items: center; justify-content: space-between; gap: 8px; flex-wrap: nowrap;
 }
 
 .rps-interpret-label {
-  font-weight: 600; flex: 1 1 220px; min-width: 0;
-  overflow-wrap: anywhere; word-break: break-word;
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
+font-weight: 600; flex: 1 1 220px; min-width: 0;
+overflow-wrap: anywhere; word-break: break-word;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
 .rps-interpret-risk {
-  font-weight: 700; flex: 0 0 auto; min-width: max-content;
-  margin-left: 8px; text-align: right; white-space: nowrap;
+font-weight: 700; flex: 0 0 auto; min-width: max-content;
+margin-left: 8px; text-align: right; white-space: nowrap;
 }
 
 /* ── Jauges ─────────────────────────────────────────────────────────────── */
 .rps-gauge {
-  width: 100%; height: 8px; border-radius: 999px; background: #e9edf5;
-  overflow: hidden; margin: 2px 0; position: relative; --gauge-score: 0%;
+width: 100%; height: 8px; border-radius: 999px; background: #e9edf5;
+overflow: hidden; margin: 2px 0; position: relative; --gauge-score: 0%;
 }
 
 .rps-gauge-fill {
-  position: absolute; top: 0; left: 0; height: 100%;
-  width: var(--gauge-score, 0%); background: #2eaf5d;
-  animation: rpsGaugeFillReveal 2200ms ease-out forwards;
-  border-radius: 999px;
-  transition: background-color 800ms ease, width 2200ms ease-out;
+position: absolute; top: 0; left: 0; height: 100%;
+width: var(--gauge-score, 0%); background: #2eaf5d;
+animation: rpsGaugeFillReveal 2200ms ease-out forwards;
+border-radius: 999px;
+transition: background-color 800ms ease, width 2200ms ease-out;
 }
 
 .rps-gauge-indicator {
-  position: absolute; top: 50%; width: 10px; height: 10px;
-  border-radius: 50%; background: #1f2937; border: 2px solid #ffffff;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
-  left: var(--gauge-score, 0%);
-  animation: rpsIndicatorMove 2200ms ease-out forwards;
+position: absolute; top: 50%; width: 10px; height: 10px;
+border-radius: 50%; background: #1f2937; border: 2px solid #ffffff;
+transform: translate(-50%, -50%);
+box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+left: var(--gauge-score, 0%);
+animation: rpsIndicatorMove 2200ms ease-out forwards;
 }
 
 /* ── Mini cartes panel ──────────────────────────────────────────────────── */
 .panel-title {
-  margin: 0 0 8px 0; color: #3f5170;
-  font-size: 0.9rem; font-weight: 700;
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
+margin: 0 0 8px 0; color: #3f5170;
+font-size: 0.9rem; font-weight: 700;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
 .mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 .mini-card {
-  min-height: 108px; border-radius: 12px; border: 1px solid var(--border);
-  background: var(--card); box-shadow: 0 4px 16px rgba(52,78,124,0.08);
-  padding: 14px 12px;
+min-height: 108px; border-radius: 12px; border: 1px solid var(--border);
+background: var(--card); box-shadow: 0 4px 16px rgba(52,78,124,0.08);
+padding: 14px 12px;
 }
 
 .mini-title {
-  color: #3f5170; font-size: 0.86rem; font-weight: 700;
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
+color: #3f5170; font-size: 0.86rem; font-weight: 700;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
 .mini-value {
-  color: #5b6f8f; font-size: 0.82rem; margin-top: 9px; line-height: 1.3;
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
+color: #5b6f8f; font-size: 0.82rem; margin-top: 9px; line-height: 1.3;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
 /* ── Résumé RPS ─────────────────────────────────────────────────────────── */
 .rps-summary-card {
-  background: white; padding: 30px; border-radius: 18px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center;
-  width: 100%; margin: 0 auto; box-sizing: border-box;
+background: white; padding: 30px; border-radius: 18px;
+box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center;
+width: 100%; margin: 0 auto; box-sizing: border-box;
 }
 
 .rps-summary-card h2 {
-  color: #0a3d62; font-weight: 600; margin: 0 0 8px 0;
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
+color: #0a3d62; font-weight: 600; margin: 0 0 8px 0;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
 /* ── Boutons ────────────────────────────────────────────────────────────── */
 .stButton > button {
-  background: linear-gradient(135deg, #2f66b3, #4f8be4) !important;
-  border: none !important; color: #FFFFFF !important; border-radius: 10px !important;
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
-  font-weight: 700 !important; font-size: 0.8rem !important;
-  letter-spacing: 0.02em !important;
-  box-shadow: 0 3px 10px rgba(47,102,179,0.25) !important;
-  transition: all 0.18s !important;
+background: linear-gradient(135deg, #2f66b3, #4f8be4) !important;
+border: none !important; color: #FFFFFF !important; border-radius: 10px !important;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
+font-weight: 700 !important; font-size: 0.8rem !important;
+letter-spacing: 0.02em !important;
+box-shadow: 0 3px 10px rgba(47,102,179,0.25) !important;
+transition: all 0.18s !important;
 }
 
 .stButton > button:hover {
-  background: linear-gradient(135deg, #1e4a8a, #2f66b3) !important;
-  box-shadow: 0 4px 16px rgba(47,102,179,0.35) !important;
-  transform: translateY(-1px) !important;
+background: linear-gradient(135deg, #1e4a8a, #2f66b3) !important;
+box-shadow: 0 4px 16px rgba(47,102,179,0.35) !important;
+transform: translateY(-1px) !important;
 }
 
 /* ── Plotly charts ──────────────────────────────────────────────────────── */
 div[data-testid="stPlotlyChart"] {
-  border: 1px solid var(--border); border-radius: 12px;
-  background: var(--card); box-shadow: 0 4px 16px rgba(52,78,124,0.08); padding: 6px;
+border: 1px solid var(--border); border-radius: 12px;
+background: var(--card); box-shadow: 0 4px 16px rgba(52,78,124,0.08); padding: 6px;
 }
 
 /* ── Scrollbar ──────────────────────────────────────────────────────────── */
@@ -1001,25 +1001,25 @@ div[data-testid="stColumn"] > div { background: #ffffff; border-radius: 14px; }
 
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 1200px) {
-  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .rps-grid { grid-template-columns: 1fr; }
-  .card-container { width: 100%; height: auto; min-height: 170px; }
-  .mini-grid { grid-template-columns: 1fr; }
+.kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.rps-grid { grid-template-columns: 1fr; }
+.card-container { width: 100%; height: auto; min-height: 170px; }
+.mini-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 700px) {
-  .kpi-grid { grid-template-columns: 1fr; gap: 8px; }
-  .card-container { width: 100%; height: auto; min-height: 150px; }
+.kpi-grid { grid-template-columns: 1fr; gap: 8px; }
+.card-container { width: 100%; height: auto; min-height: 150px; }
 }
 
 @media (max-width: 900px) {
-  .block-container { padding-left: 0.7rem; padding-right: 0.7rem; }
-  .section-title { font-size: 1.05rem !important; }
-  .card-value { font-size: 24px !important; }
-  div[data-testid="stHorizontalBlock"] { flex-direction: column !important; gap: 10px !important; }
-  div[data-testid="stHorizontalBlock"] > div { width: 100% !important; min-width: 0 !important; flex: 1 1 100% !important; }
-  .rps-line { font-size: 13px; }
-  .rps-interpret-label { font-size: 13px; }
+.block-container { padding-left: 0.7rem; padding-right: 0.7rem; }
+.section-title { font-size: 1.05rem !important; }
+.card-value { font-size: 24px !important; }
+div[data-testid="stHorizontalBlock"] { flex-direction: column !important; gap: 10px !important; }
+div[data-testid="stHorizontalBlock"] > div { width: 100% !important; min-width: 0 !important; flex: 1 1 100% !important; }
+.rps-line { font-size: 13px; }
+.rps-interpret-label { font-size: 13px; }
 }
 /* Force la Sidebar en blanc pur */
     [data-testid="stSidebar"] {
@@ -1044,8 +1044,8 @@ def load_css() -> None:
 def load_js() -> None:
     js_path = next(
         (Path(p) / "assets" / "animations.js"
-         for p in [Path.cwd(), Path(__file__).parent, *map(Path, sys.path)]
-         if (Path(p) / "assets" / "animations.js").exists()),
+        for p in [Path.cwd(), Path(__file__).parent, *map(Path, sys.path)]
+        if (Path(p) / "assets" / "animations.js").exists()),
         None,
     )
     if js_path is not None:
@@ -1568,7 +1568,7 @@ def render_sidebar_copsoq(df_base: pd.DataFrame) -> pd.DataFrame:
             """<div style="font-family:'Fraunces',serif;font-size:1.15rem;font-style:italic;
                     color:#0F2340;font-weight:400;margin-bottom:0.5rem;padding-bottom:0.6rem;
                     border-bottom:2px solid #E4F0FB;">Filtres</div>
-           """,
+        """,
             unsafe_allow_html=True,
         )
 
@@ -1628,7 +1628,7 @@ def render_sidebar_copsoq(df_base: pd.DataFrame) -> pd.DataFrame:
         # ── Bouton reset ─────────────────────────────────────────────────────
         if st.button("↺ Réinitialiser", key="copsoq_sb_reset", use_container_width=True):
             for k in ["copsoq_sb_dir", "copsoq_sb_genre", "copsoq_sb_age",
-                      "copsoq_sb_tranche", "copsoq_sb_anc"]:
+                    "copsoq_sb_tranche", "copsoq_sb_anc"]:
                 st.session_state.pop(k, None)
             st.rerun()
 
@@ -1838,18 +1838,18 @@ with tab_generales:
                 numeric_value = float(str(value).replace("%", "").strip())
                 start_text = "0.0%" if is_rate else "0"
                 value_html = (f'<p class="card-value kpi-drop-fade" style="animation-delay: {delay_ms}ms;">'
-                              f'<span class="rps-score-value" data-rps-score="true" data-rps-target="{numeric_value}" '
-                              f'data-rps-decimals="{decimals}" data-rps-suffix="{suffix}" data-rps-final="{value}">{start_text}</span></p>')
+                            f'<span class="rps-score-value" data-rps-score="true" data-rps-target="{numeric_value}" '
+                            f'data-rps-decimals="{decimals}" data-rps-suffix="{suffix}" data-rps-final="{value}">{start_text}</span></p>')
             except Exception:
                 pass
         elif label == "Risque Cardio-Vasculaire":
             value_html = f'<p class="card-value kpi-drop-fade" style="animation-delay: {delay_ms}ms;line-height:1.4;">{value}</p>'
         if index == 0 and effectif_img_b64:
             cards_html += (f'<div class="card-container"><p class="card-title">{label}</p>{value_html}'
-                           f'<img class="card-center-image" src="data:image/png;base64,{effectif_img_b64}" alt="effectif" /></div>')
+                        f'<img class="card-center-image" src="data:image/png;base64,{effectif_img_b64}" alt="effectif" /></div>')
         else:
             cards_html += (f'<div class="card-container"><p class="card-title">{label}</p>{value_html}'
-                           f'<div class="card-footer">{emoji}</div></div>')
+                        f'<div class="card-footer">{emoji}</div></div>')
 
     st.markdown(f'<div class="kpi-grid">{cards_html}</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-gap"></div>', unsafe_allow_html=True)
@@ -1875,13 +1875,13 @@ with tab_generales:
     _RPS_DOMAIN_SUBDOMAINS = {
         "Contraintes Quantitatives": ["Charge de travail", "Rythme travail", "Exigences cognitive"],
         "Organisation et Leadership": ["Previsibilite", "Reconnaissance", "Equite", "Clarte des roles",
-                                       "Conflit de roles", "Qualite de leadership du superieur hierarchique",
-                                       "Soutien social de la part du superieur hierarchique",
-                                       "Confiance entre les salaries et le management"],
+                                    "Conflit de roles", "Qualite de leadership du superieur hierarchique",
+                                    "Soutien social de la part du superieur hierarchique",
+                                    "Confiance entre les salaries et le management"],
         "Relations Horizontales": ["Confiance entre les collegues", "Soutien social entre les collegues"],
         "Autonomie": ["Marge de manoeuvre", "Possibilites d'epanouissement"],
         "Sante et Bien-etre": ["Sante auto evaluee", "Stress", "Epuisement", "Exigence emotionnelle",
-                               "Conflit famille-travail", "Insecurite Professionnelle"],
+                            "Conflit famille-travail", "Insecurite Professionnelle"],
         "Vecu Professionnel": ["Sens du travail", "Engagement dans l'entreprise", "Satisfaction au travail"],
     }
 
@@ -2165,16 +2165,16 @@ with tab_analyse_simple:
                 percentages = (counts / total_uni * 100).round(1)
                 plot_df = pd.DataFrame({'Modalité': counts.index, 'Effectif': counts.values, 'Pourcentage': percentages.values})
                 fig = px.bar(plot_df, x='Modalité', y='Pourcentage', title=f'Répartition - {selected_col}',
-                             labels={'Pourcentage': 'Fréquence (%)', 'Modalité': selected_col},
-                             color_discrete_sequence=['#60A5FA'],
-                             text=[f"{pct:.1f}%<br>({eff})" for pct, eff in zip(percentages.values, counts.values)])
+                            labels={'Pourcentage': 'Fréquence (%)', 'Modalité': selected_col},
+                            color_discrete_sequence=['#60A5FA'],
+                            text=[f"{pct:.1f}%<br>({eff})" for pct, eff in zip(percentages.values, counts.values)])
                 fig.update_traces(textposition='inside', textfont=dict(size=11, color='white', family='Plus Jakarta Sans'),
-                                  hovertemplate='<b>%{x}</b><br>Effectif: %{customdata[0]}<br>Fréquence: %{y:.1f}%<extra></extra>',
-                                  customdata=plot_df[['Effectif']].values, textangle=0, insidetextanchor='middle')
+                                hovertemplate='<b>%{x}</b><br>Effectif: %{customdata[0]}<br>Fréquence: %{y:.1f}%<extra></extra>',
+                                customdata=plot_df[['Effectif']].values, textangle=0, insidetextanchor='middle')
                 fig.update_layout(xaxis=dict(tickangle=45, tickfont=dict(size=10), title=selected_col),
-                                  yaxis=dict(range=[0, 100], tickfont=dict(size=10), title='Fréquence (%)', gridcolor='lightgray'),
-                                  height=500, margin=dict(l=50, r=50, t=50, b=120), showlegend=False,
-                                  plot_bgcolor='white', title_font=dict(size=14, family='Plus Jakarta Sans'))
+                                yaxis=dict(range=[0, 100], tickfont=dict(size=10), title='Fréquence (%)', gridcolor='lightgray'),
+                                height=500, margin=dict(l=50, r=50, t=50, b=120), showlegend=False,
+                                plot_bgcolor='white', title_font=dict(size=14, family='Plus Jakarta Sans'))
                 fig_uni = fig
                 png_bytes = None
             else:

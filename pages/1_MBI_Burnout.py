@@ -24,147 +24,147 @@ def _get_inline_css() -> str:
 
 /* ── Variables ─────────────────────────────────────────────────────────── */
 :root {
-  --bg-soft:    #eef2f7;
-  --card:       #ffffff;
-  --text:       #2f3d55;
-  --accent:     #2f66b3;
-  --accent-soft:#e7eefb;
-  --border:     #dde5f2;
+--bg-soft:    #eef2f7;
+--card:       #ffffff;
+--text:       #2f3d55;
+--accent:     #2f66b3;
+--accent-soft:#e7eefb;
+--border:     #dde5f2;
 }
 
 /* ── Base typographie : Plus Jakarta Sans sur tout l'app ────────────────── */
 html, body, [class*="css"], .stApp {
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
 .stApp {
-  background: linear-gradient(180deg, #f4f6fb 0%, var(--bg-soft) 100%);
-  color: var(--text);
+background: linear-gradient(180deg, #f4f6fb 0%, var(--bg-soft) 100%);
+color: var(--text);
 }
 
 .main .block-container {
-  padding-top: 0.75rem;
-  padding-left: 2rem;
-  padding-right: 2rem;
-  max-width: 1500px;
+padding-top: 0.75rem;
+padding-left: 2rem;
+padding-right: 2rem;
+max-width: 1500px;
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
 [data-testid="stSidebar"] {
-  background-color: #FFFFFF !important;
-  border-right: 1px solid #E4F0FB !important;
+background-color: #FFFFFF !important;
+border-right: 1px solid #E4F0FB !important;
 }
 [data-testid="stSidebar"] .stMarkdown,
 [data-testid="stSidebar"] label,
 [data-testid="stSidebar"] .stText {
-  color: #0F2340 !important;
+color: #0F2340 !important;
 }
 
 /* ── Grands titres de section : Fraunces italic ──────────────────────────── */
 .section-title {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  font-family: 'Fraunces', Georgia, serif !important;
-  font-size: 1.25rem !important;
-  font-style: italic !important;
-  font-weight: 400 !important;
-  color: #0F2340 !important;
-  margin: 1.6rem 0 1rem !important;
-  padding-bottom: 0.65rem !important;
-  border-bottom: 2px solid #dde5f2 !important;
+display: flex;
+align-items: center;
+gap: 0.7rem;
+font-family: 'Fraunces', Georgia, serif !important;
+font-size: 1.25rem !important;
+font-style: italic !important;
+font-weight: 400 !important;
+color: #0F2340 !important;
+margin: 1.6rem 0 1rem !important;
+padding-bottom: 0.65rem !important;
+border-bottom: 2px solid #dde5f2 !important;
 }
 
 .section-title::before {
-  content: '';
-  display: inline-block;
-  width: 4px;
-  height: 22px;
-  background: linear-gradient(180deg, #2f66b3 0%, #4f8be4 100%);
-  border-radius: 2px;
-  flex-shrink: 0;
+content: '';
+display: inline-block;
+width: 4px;
+height: 22px;
+background: linear-gradient(180deg, #2f66b3 0%, #4f8be4 100%);
+border-radius: 2px;
+flex-shrink: 0;
 }
 
 /* ── Onglets style Karasek ──────────────────────────────────────────────── */
 [data-baseweb="tab-list"] {
-  background: #FFFFFF !important;
-  border-radius: 12px !important;
-  padding: 4px !important;
-  gap: 3px !important;
-  border: 1px solid #dde5f2 !important;
-  box-shadow: 0 2px 8px rgba(47,102,179,0.07) !important;
+background: #FFFFFF !important;
+border-radius: 12px !important;
+padding: 4px !important;
+gap: 3px !important;
+border: 1px solid #dde5f2 !important;
+box-shadow: 0 2px 8px rgba(47,102,179,0.07) !important;
 }
 
 [data-baseweb="tab"] {
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
-  font-weight: 600 !important;
-  font-size: 0.88rem !important;
-  color: #6B88A8 !important;
-  border-radius: 9px !important;
-  padding: 0.5rem 1.4rem !important;
-  transition: all 0.2s !important;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
+font-weight: 600 !important;
+font-size: 0.88rem !important;
+color: #6B88A8 !important;
+border-radius: 9px !important;
+padding: 0.5rem 1.4rem !important;
+transition: all 0.2s !important;
 }
 
 [aria-selected="true"][data-baseweb="tab"] {
-  background: linear-gradient(135deg, #2f66b3, #4f8be4) !important;
-  color: #FFFFFF !important;
-  font-weight: 700 !important;
-  box-shadow: 0 3px 12px rgba(47,102,179,0.30) !important;
+background: linear-gradient(135deg, #2f66b3, #4f8be4) !important;
+color: #FFFFFF !important;
+font-weight: 700 !important;
+box-shadow: 0 3px 12px rgba(47,102,179,0.30) !important;
 }
 
 [data-baseweb="tab-highlight"],
 [data-baseweb="tab-border"] {
-  display: none !important;
+display: none !important;
 }
 /* ── Bande décorative ───────────────────────────────────────────────────── */
 .top-strip {
-  width: 100%;
-  height: 6px;
-  border-radius: 8px;
-  margin-bottom: 12px;
-  background: linear-gradient(90deg, #2f66b3 0%, #4f8be4 100%);
+width: 100%;
+height: 6px;
+border-radius: 8px;
+margin-bottom: 12px;
+background: linear-gradient(90deg, #2f66b3 0%, #4f8be4 100%);
 }
 /* ── Boutons ─────────────────────────────────────────────────────────────── */
 .stButton > button {
-  background: linear-gradient(135deg, #38A3E8, #2B8FD0) !important;
-  border: none !important;
-  color: #FFFFFF !important;
-  border-radius: 10px !important;
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
-  font-weight: 700 !important;
-  font-size: 0.8rem !important;
-  letter-spacing: 0.02em !important;
-  box-shadow: 0 3px 10px rgba(56,163,232,0.25) !important;
-  transition: all 0.18s !important;
+background: linear-gradient(135deg, #38A3E8, #2B8FD0) !important;
+border: none !important;
+color: #FFFFFF !important;
+border-radius: 10px !important;
+font-family: 'Plus Jakarta Sans', sans-serif !important;
+font-weight: 700 !important;
+font-size: 0.8rem !important;
+letter-spacing: 0.02em !important;
+box-shadow: 0 3px 10px rgba(56,163,232,0.25) !important;
+transition: all 0.18s !important;
 }
 
 .stButton > button:hover {
-  background: linear-gradient(135deg, #F97316, #EA6A0A) !important;
-  box-shadow: 0 4px 16px rgba(249,115,22,0.3) !important;
-  transform: translateY(-1px) !important;
+background: linear-gradient(135deg, #F97316, #EA6A0A) !important;
+box-shadow: 0 4px 16px rgba(249,115,22,0.3) !important;
+transform: translateY(-1px) !important;
 }
 
 .stDownloadButton > button {
-  background: white !important;
-  color: #38A3E8 !important;
-  border: 1.5px solid #bfdbfe !important;
-  border-radius: 10px !important;
-  font-weight: 600 !important;
-  font-size: 13px !important;
-  transition: all 0.2s !important;
+background: white !important;
+color: #38A3E8 !important;
+border: 1.5px solid #bfdbfe !important;
+border-radius: 10px !important;
+font-weight: 600 !important;
+font-size: 13px !important;
+transition: all 0.2s !important;
 }
 
 .stDownloadButton > button:hover {
-  background: #38A3E8 !important;
-  color: white !important;
+background: #38A3E8 !important;
+color: white !important;
 }
 
 /* ── Selects ─────────────────────────────────────────────────────────────── */
 div[data-baseweb="select"] > div {
-  background: white !important;
-  border: 1.5px solid #cbd5e1 !important;
-  border-radius: 9px !important;
-  color: #1e293b !important;
+background: white !important;
+border: 1.5px solid #cbd5e1 !important;
+border-radius: 9px !important;
+color: #1e293b !important;
 }
 div[data-baseweb="select"] span,
 div[data-baseweb="select"] input,
@@ -172,15 +172,15 @@ div[data-baseweb="select"] *,
 div[data-baseweb="select"] div { color: #1e293b !important; }
 .stSelectbox label, .stSelectbox p,
 [data-baseweb="select"] [data-testid="stMarkdownContainer"] p {
-  color: #1e293b !important;
-  font-weight: 600 !important;
-  font-size: 13px !important;
+color: #1e293b !important;
+font-weight: 600 !important;
+font-size: 13px !important;
 }
 ul[role="listbox"] {
-  background: white !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 10px !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.11) !important;
+background: white !important;
+border: 1px solid #e2e8f0 !important;
+border-radius: 10px !important;
+box-shadow: 0 8px 24px rgba(0,0,0,0.11) !important;
 }
 li[role="option"] { background: white !important; color: #1e293b !important; font-size: 13px !important; }
 li[role="option"] * { color: #1e293b !important; }
@@ -193,41 +193,41 @@ li[role="option"][aria-selected="true"] * { color: white !important; }
 
 /* ── Inputs texte & nombre ───────────────────────────────────────────────── */
 .stTextInput > div > div > input {
-  border: 1.5px solid #cbd5e1 !important;
-  border-radius: 9px !important;
-  font-size: 14px !important;
-  color: #1e293b !important;
-  background: white !important;
-  padding: 10px 14px !important;
+border: 1.5px solid #cbd5e1 !important;
+border-radius: 9px !important;
+font-size: 14px !important;
+color: #1e293b !important;
+background: white !important;
+padding: 10px 14px !important;
 }
 .stTextInput > div > div > input:focus {
-  border-color: #3b82f6 !important;
-  background: white !important;
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
+border-color: #3b82f6 !important;
+background: white !important;
+box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
 }
 .stTextInput label { color: #1e293b !important; font-weight: 600 !important; font-size: 13px !important; }
 .stNumberInput > div > div > input {
-  border: 1.5px solid #cbd5e1 !important;
-  border-radius: 9px !important;
-  font-size: 14px !important;
-  color: #1e293b !important;
-  background: white !important;
+border: 1.5px solid #cbd5e1 !important;
+border-radius: 9px !important;
+font-size: 14px !important;
+color: #1e293b !important;
+background: white !important;
 }
 .stNumberInput > div > div > input:focus {
-  border-color: #3b82f6 !important;
-  background: white !important;
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
+border-color: #3b82f6 !important;
+background: white !important;
+box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
 }
 .stNumberInput label { color: #1e293b !important; font-weight: 600 !important; font-size: 13px !important; }
 .stNumberInput button { background: white !important; border-color: #cbd5e1 !important; color: #1e40af !important; }
 
 /* ── Plotly charts ───────────────────────────────────────────────────────── */
 div[data-testid="stPlotlyChart"] {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--card);
-  box-shadow: 0 4px 16px rgba(52,78,124,0.08);
-  padding: 6px;
+border: 1px solid var(--border);
+border-radius: 12px;
+background: var(--card);
+box-shadow: 0 4px 16px rgba(52,78,124,0.08);
+padding: 6px;
 }
 
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
@@ -238,7 +238,7 @@ div[data-testid="stPlotlyChart"] {
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
-  .main .block-container { padding-left: 0.7rem; padding-right: 0.7rem; }
+.main .block-container { padding-left: 0.7rem; padding-right: 0.7rem; }
 }
 """
 
@@ -325,7 +325,7 @@ def _token_overlap_ratio(a: str, b: str) -> float:
 # FUZZY MATCH — renommage automatique des colonnes MBI
 # ════════════════════════════════════════════════════════════
 def fuzzy_rename_mbi_columns(df: pd.DataFrame,
-                              threshold: float = 0.40) -> tuple:
+                            threshold: float = 0.40) -> tuple:
     """
     Tente de renommer les colonnes d'un DataFrame vers les noms canoniques
     mbi_q1…mbi_q22 par similarité textuelle avec les questions officielles.
@@ -500,7 +500,7 @@ def clean_common_variables(df: pd.DataFrame) -> tuple:
     # ── 5. fillna 'Non renseigné' sur toutes les colonnes ─────
     #    (sauf colonnes MBI numériques et colonnes purement numériques)
     numeric_protected = set(MBI_COLS) | {'age', 'anciennete', 'poids', 'taille', 'imc',
-                                          'ee_score', 'dp_score', 'pa_score'}
+                                        'ee_score', 'dp_score', 'pa_score'}
     filled_cols = []
     for col in df.columns:
         if col in numeric_protected:
@@ -578,7 +578,7 @@ def compute_tranche_anciennete(df):
             else:           return '21 ans et plus'
 
     cats = ['0-2 ans','3-5 ans','6-10 ans','11 ans et plus'] if fuse_high \
-           else ['0-2 ans','3-5 ans','6-10 ans','11-20 ans','21 ans et plus']
+        else ['0-2 ans','3-5 ans','6-10 ans','11-20 ans','21 ans et plus']
 
     df['tranche_anciennete'] = pd.Categorical(df['anciennete'].apply(assign), categories=cats, ordered=True)
     return df
@@ -864,7 +864,7 @@ with onglet1:
         if 'imc' not in df.columns:
             df['imc'] = df['poids'] / ((df['taille']/100)**2)
         RISQUES_DATA.append(('<i class="fas fa-weight-scale"></i>', "Obésité/Surpoids",
-                             int((df['imc'] >= 25).sum())))
+                            int((df['imc'] >= 25).sum())))
     for col_r, lbl_r, vals_r, icon_r in [
         ('pratique_sport',    "Sédentarité (pas sport)",  ['non','0','false'], '<i class="fas fa-person-walking"></i>'),
         ('consommation_alcool',"Consommation alcool",      ['oui','1','true'],  '<i class="fas fa-wine-glass"></i>'),
@@ -897,7 +897,7 @@ with onglet1:
     sec("Analyses univariées")
 
     BINARY_VARS_UNI = ['pratique_sport','consommation_alcool','tabagisme',
-                       'maladie_chronique','handicap_physique','suivi_psychologique']
+                    'maladie_chronique','handicap_physique','suivi_psychologique']
     VAR_OPTIONS_BASE = {
         "Genre":                  "genre",
         "Tranche d'âge":          "tranche_age",
@@ -932,10 +932,10 @@ with onglet1:
             fig, ax = plt.subplots(figsize=(3.8, 3.2))
             fig.patch.set_facecolor('#f1f4f9'); ax.set_facecolor('#f1f4f9')
             color_map  = {'Femme':'#a78bfa','femme':'#a78bfa','F':'#a78bfa',
-                          'Homme':'#38bdf8','homme':'#38bdf8','H':'#38bdf8'}
+                        'Homme':'#38bdf8','homme':'#38bdf8','H':'#38bdf8'}
             dominant_g = pcts_u.idxmax()
             colors_g2  = [color_map.get(str(k),'#1e40af') if k==dominant_g else '#f1f4f9'
-                          for k in pcts_u.index]
+                        for k in pcts_u.index]
             wedges, _  = ax.pie(pcts_u.values, labels=None, colors=colors_g2,
                                 startangle=90, wedgeprops=dict(edgecolor='white', linewidth=2))
             for wedge, (k, v) in zip(wedges, pcts_u.items()):
@@ -947,7 +947,7 @@ with onglet1:
                             ha='center', va='center', color='white',
                             fontsize=8, fontweight='bold', linespacing=1.3)
             ax.set_title(f"Répartition des Employés\nselon : {sel_label}",
-                         fontsize=11, fontweight='bold', color='#1e293b', pad=10)
+                        fontsize=11, fontweight='bold', color='#1e293b', pad=10)
             plt.tight_layout()
             _, cc, _ = st.columns([1,1,1])
             with cc: st.pyplot(fig, use_container_width=False)
@@ -962,7 +962,7 @@ with onglet1:
                 colors_b.append('#1e40af' if k==dominant else '#e2e8f0')
                 explode.append(0.03 if k==dominant else 0)
             wedges, _ = ax.pie(sizes, labels=None, colors=colors_b, explode=explode,
-                               startangle=90, wedgeprops=dict(edgecolor='white', linewidth=2))
+                            startangle=90, wedgeprops=dict(edgecolor='white', linewidth=2))
             for wedge, (k, v) in zip(wedges, pcts_u.items()):
                 if k == dominant:
                     angle = (wedge.theta1 + wedge.theta2) / 2
@@ -973,11 +973,11 @@ with onglet1:
                             fontsize=8, fontweight='bold', linespacing=1.3)
             minority   = [k for k in pcts_u.index if k != dominant][0]
             legend_el  = [Patch(facecolor='#1e40af', edgecolor='white', label=f"{dominant}"),
-                          Patch(facecolor='#e2e8f0', edgecolor='#ccc',  label=f"{minority}")]
+                        Patch(facecolor='#e2e8f0', edgecolor='#ccc',  label=f"{minority}")]
             ax.legend(handles=legend_el, loc='lower center',
-                      bbox_to_anchor=(0.5,-0.12), ncol=2, fontsize=8, frameon=False)
+                    bbox_to_anchor=(0.5,-0.12), ncol=2, fontsize=8, frameon=False)
             ax.set_title(f"Répartition des Employés\nselon : {sel_label}",
-                         fontsize=11, fontweight='bold', color='#1e293b', pad=10)
+                        fontsize=11, fontweight='bold', color='#1e293b', pad=10)
             plt.tight_layout()
             _, cc, _ = st.columns([1,1,1])
             with cc: st.pyplot(fig, use_container_width=False)
@@ -1005,7 +1005,7 @@ with onglet1:
             cmap     = plt.cm.get_cmap('tab10', n_bars)
             colors_bar = [cmap(i) for i in range(n_bars)]
             bars = ax.bar(range(n_bars), pcts_u.values, color=colors_bar,
-                          edgecolor='white', linewidth=2.5, alpha=0.9, width=0.6)
+                        edgecolor='white', linewidth=2.5, alpha=0.9, width=0.6)
             max_v = pcts_u.max()
             for bar, lbl, pv, cv in zip(bars, counts_u.index, pcts_u.values, counts_u.values):
                 h    = bar.get_height()
@@ -1022,14 +1022,14 @@ with onglet1:
                             fontsize=11, fontweight='bold', linespacing=1.2)
             ax.set_xticks(range(n_bars))
             ax.set_xticklabels(counts_u.index.astype(str), fontsize=12,
-                               rotation=0 if n_bars<=3 else 30,
-                               ha='right' if n_bars>3 else 'center')
+                            rotation=0 if n_bars<=3 else 30,
+                            ha='right' if n_bars>3 else 'center')
             ax.set_ylabel('Pourcentage (%)', fontsize=14, fontweight='bold', color='#1e293b')
             ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False)
             ax.spines['left'].set_color('#cbd5e1'); ax.spines['bottom'].set_color('#cbd5e1')
             ax.set_ylim(0, max_v * 1.40)
             ax.set_title(f"Répartition des Employés\nselon : {sel_label}",
-                         fontsize=14, fontweight='bold', color='#1e293b', pad=16)
+                        fontsize=14, fontweight='bold', color='#1e293b', pad=16)
             plt.tight_layout()
             st.pyplot(fig, use_container_width=True)
 
@@ -1037,7 +1037,7 @@ with onglet1:
         fig.savefig(buf, format='png', dpi=200, bbox_inches='tight', facecolor='#f1f4f9')
         buf.seek(0)
         st.download_button("⬇  Télécharger le graphique (PNG)", buf,
-                           f"univarie_{sel_col}.png", "image/png", key="dl_uni")
+                        f"univarie_{sel_col}.png", "image/png", key="dl_uni")
         plt.close()
 
 # ╔══════════════════════════════════════════════════════════╗
@@ -1048,9 +1048,9 @@ with onglet2:
     sec("Résultats de l'évaluation MBI")
     r1, r2, r3 = st.columns(3)
     kpi_s = ("background:white;border-radius:12px;padding:22px 16px;"
-             "box-shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 12px rgba(0,0,0,0.07);"
-             "border:1px solid #e8edf5;height:150px;"
-             "display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;text-align:center;")
+            "box-shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 12px rgba(0,0,0,0.07);"
+            "border:1px solid #e8edf5;height:150px;"
+            "display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;text-align:center;")
     with r1:
         st.markdown(
             f'<div style="{kpi_s}border-top:4px solid #16a34a;">'
@@ -1218,7 +1218,7 @@ with onglet2:
     VAR_CROISE.update({k: v for k, v in VAR_CROISE_BASE.items() if v in df.columns})
 
     sel_c_label = st.selectbox("Sélectionnez une variable démographique à analyser :",
-                               list(VAR_CROISE.keys()), key="croise_tab2")
+                            list(VAR_CROISE.keys()), key="croise_tab2")
     sel_c_col   = VAR_CROISE[sel_c_label]
 
     def render_table_mbi(df_t):
@@ -1296,21 +1296,21 @@ with onglet2:
             fig2.patch.set_facecolor('#f1f4f9'); ax2.set_facecolor('white')
             data_plot = t_ligne[[c for c in ORDER if c in t_ligne.columns]].copy()
             data_plot.plot(kind='barh', stacked=True, ax=ax2,
-                           color=['#16a34a','#d97706','#dc2626'], edgecolor='none', linewidth=0)
+                        color=['#16a34a','#d97706','#dc2626'], edgecolor='none', linewidth=0)
             for i, idx in enumerate(data_plot.index):
                 cumsum = 0
                 for cat in data_plot.columns:
                     pv = data_plot.loc[idx, cat]
                     if pv > 5:
                         ax2.text(cumsum+pv/2, i, f'{pv:.1f}%',
-                                 ha='center', va='center', color='white', fontsize=11, fontweight='bold')
+                                ha='center', va='center', color='white', fontsize=11, fontweight='bold')
                     cumsum += pv
             ax2.set_xlabel('Pourcentage (%)', fontsize=13, fontweight='bold', color='#1e293b')
             ax2.set_ylabel(sel_c_label, fontsize=13, fontweight='bold', color='#1e293b')
             ax2.set_title(f"Répartition du Burnout des Employés selon : {sel_c_label}",
-                          fontsize=15, fontweight='bold', pad=20, color='#1e293b')
+                        fontsize=15, fontweight='bold', pad=20, color='#1e293b')
             ax2.legend(title='Niveau Burnout', loc='upper center',
-                       bbox_to_anchor=(0.5,-0.12), ncol=3, frameon=False, fontsize=11)
+                    bbox_to_anchor=(0.5,-0.12), ncol=3, frameon=False, fontsize=11)
             ax2.set_xlim(0, 100)
             ax2.grid(axis='x', alpha=0.3, linestyle='--')
             ax2.spines['top'].set_visible(False); ax2.spines['right'].set_visible(False)
@@ -1321,7 +1321,7 @@ with onglet2:
             fig2.savefig(buf2, format='png', dpi=300, bbox_inches='tight', facecolor='#f1f4f9')
             buf2.seek(0)
             st.download_button("⬇  Télécharger le graphique (PNG)", buf2,
-                               f"burnout_{sel_c_col}.png", "image/png", key="dl_viz")
+                            f"burnout_{sel_c_col}.png", "image/png", key="dl_viz")
             plt.close()
 
         with lig_tab:
@@ -1335,7 +1335,7 @@ with onglet2:
                 unsafe_allow_html=True)
             csv = t_ligne.to_csv(index=True).encode('utf-8')
             st.download_button("⬇  Télécharger le tableau (CSV)", csv,
-                               f"ligne_{sel_c_col}.csv", "text/csv", key="dl_lig")
+                            f"ligne_{sel_c_col}.csv", "text/csv", key="dl_lig")
 
         with col_tab:
             st.markdown(f"<p style='font-size:13px;color:#1e293b;font-weight:600;'>Tableau croisé % colonne : {sel_c_label} vs Burnout</p>", unsafe_allow_html=True)
@@ -1348,7 +1348,7 @@ with onglet2:
                 unsafe_allow_html=True)
             csv2 = t_colonne.to_csv(index=True).encode('utf-8')
             st.download_button("⬇  Télécharger le tableau (CSV)", csv2,
-                               f"colonne_{sel_c_col}.csv", "text/csv", key="dl_col")
+                            f"colonne_{sel_c_col}.csv", "text/csv", key="dl_col")
     elif sel_c_col:
         st.warning(f"⚠️ La colonne '{sel_c_col}' n'existe pas dans les données.")
 
