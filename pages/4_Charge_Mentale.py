@@ -725,12 +725,48 @@ with tab_pilotage:
     icm10 = icm_n / 10.0
     tp    = float(df_v["TP_i"].median()) if ("TP_i" in df_v.columns and n > 0) else 0.0
 
-    k1, k2, k3, k4 = st.columns(4, gap="large")
-    k1.markdown(f'<div class="kpi-strip"><div class="kpi-accent" style="background:#ff8f9a;"></div><div class="kpi-icon-wrap"><span class="kpi-icon" style="background:#ff8f9a;">🏢</span></div><div class="kpi-body"><div class="klabel">Employés</div><div class="kval">{n}</div></div></div>', unsafe_allow_html=True)
-    k2.markdown(f'<div class="kpi-strip"><div class="kpi-accent" style="background:#5a63d8;"></div><div class="kpi-icon-wrap"><span class="kpi-icon" style="background:#5a63d8;">♂</span></div><div class="kpi-body"><div class="klabel">Hommes</div><div class="kval">{ph:.1f}%</div></div></div>', unsafe_allow_html=True)
-    k3.markdown(f'<div class="kpi-strip"><div class="kpi-accent" style="background:#ff5fa5;"></div><div class="kpi-icon-wrap"><span class="kpi-icon" style="background:#ff5fa5;">♀</span></div><div class="kpi-body"><div class="klabel">Femmes</div><div class="kval">{pf:.1f}%</div></div></div>', unsafe_allow_html=True)
-    k4.markdown(f'<div class="kpi-strip"><div class="kpi-accent" style="background:#4fc785;"></div><div class="kpi-icon-wrap"><span class="kpi-icon" style="background:#4fc785;">📊</span></div><div class="kpi-body"><div class="klabel">Âge moyen</div><div class="kval">{age_m:.1f} ans</div></div></div>', unsafe_allow_html=True)
+    # ── Genre dominant uniquement ─────────────────────────────────────────
+    if ph >= pf:
+        genre_icon, genre_color, genre_label, genre_pct = "♂", "#5a63d8", "Hommes", ph
+    else:
+        genre_icon, genre_color, genre_label, genre_pct = "♀", "#ff5fa5", "Femmes", pf
 
+    # ── Situation matrimoniale dominante ─────────────────────────────────
+    sit_col_m = "Situation_matrimoniale"
+    if sit_col_m in df_v.columns and n > 0:
+        sit_counts   = df_v[sit_col_m].astype(str).str.strip().value_counts(dropna=True)
+        sit_dom_lbl  = sit_counts.index[0] if not sit_counts.empty else "—"
+        sit_dom_pct  = float(sit_counts.iloc[0] / n * 100) if not sit_counts.empty else 0.0
+    else:
+        sit_dom_lbl, sit_dom_pct = "—", 0.0
+
+    k1, k2, k3, k4 = st.columns(4, gap="large")
+    k1.markdown(
+        f'<div class="kpi-strip"><div class="kpi-accent" style="background:#ff8f9a;"></div>'
+        f'<div class="kpi-icon-wrap"><span class="kpi-icon" style="background:#ff8f9a;">🏢</span></div>'
+        f'<div class="kpi-body"><div class="klabel">Employés</div><div class="kval">{n}</div></div></div>',
+        unsafe_allow_html=True,
+    )
+    k2.markdown(
+        f'<div class="kpi-strip"><div class="kpi-accent" style="background:{genre_color};"></div>'
+        f'<div class="kpi-icon-wrap"><span class="kpi-icon" style="background:{genre_color};">{genre_icon}</span></div>'
+        f'<div class="kpi-body"><div class="klabel">{genre_label}</div><div class="kval">{genre_pct:.1f}%</div></div></div>',
+        unsafe_allow_html=True,
+    )
+    k3.markdown(
+        f'<div class="kpi-strip"><div class="kpi-accent" style="background:#4fc785;"></div>'
+        f'<div class="kpi-icon-wrap"><span class="kpi-icon" style="background:#4fc785;">📊</span></div>'
+        f'<div class="kpi-body"><div class="klabel">Âge moyen</div><div class="kval">{age_m:.1f} ans</div></div></div>',
+        unsafe_allow_html=True,
+    )
+    k4.markdown(
+        f'<div class="kpi-strip"><div class="kpi-accent" style="background:#e98a2f;"></div>'
+        f'<div class="kpi-icon-wrap"><span class="kpi-icon" style="background:#e98a2f;">💍</span></div>'
+        f'<div class="kpi-body"><div class="klabel">Sit. matrimoniale</div>'
+        f'<div class="kval" style="font-size:18px;padding-top:4px;">{sit_dom_lbl}</div>'
+        f'<div class="klabel">{sit_dom_pct:.1f}%</div></div></div>',
+        unsafe_allow_html=True,
+    )
     n_base = max(n, 1)
     pct_f = (df_v["niveau"] == "Niveau de stress faible").sum()  * 100 / n_base
     pct_m = (df_v["niveau"] == "Niveau de stress modere").sum()  * 100 / n_base

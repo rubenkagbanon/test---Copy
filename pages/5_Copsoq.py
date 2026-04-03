@@ -1814,15 +1814,54 @@ with tab_generales:
     )
     cardio_icon = "🟢" if niveau_cardio == "Faible" else "🟠" if niveau_cardio == "Modéré" else "🔴"
 
+# ── Genre dominant uniquement ─────────────────────────────────────────
+    if pourcentage_hommes >= pourcentage_femmes:
+        genre_dominant_label = f"Hommes ({kpi['nombre_hommes']})"
+        genre_dominant_pct   = pourcentage_hommes
+        genre_dominant_img   = homme_img_b64
+        genre_dominant_alt   = "homme"
+    else:
+        genre_dominant_label = f"Femmes ({kpi['nombre_femmes']})"
+        genre_dominant_pct   = pourcentage_femmes
+        genre_dominant_img   = femme_img_b64
+        genre_dominant_alt   = "femme"
+
+    # ── Ancienneté : médiane numérique ou tranche dominante ───────────────
+    _anc_col_num    = _find_by_patterns(list(filtered_df_generale.columns), [r"anciennete", r"anciennet"])
+    _tranche_anc_col = "Tranche anciennete" if "Tranche anciennete" in filtered_df_generale.columns else None
+    anciennete_label = "Ancienneté"
+    anciennete_value = "N/A"
+    anciennete_emoji = "📅"
+
+    if _anc_col_num is not None and _tranche_anc_col is None:
+        _anc_vals = pd.to_numeric(filtered_df_generale[_anc_col_num], errors="coerce").dropna()
+        if not _anc_vals.empty:
+            anciennete_value = f"{_anc_vals.median():.1f} ans"
+    elif _tranche_anc_col is not None:
+        _tranche_counts = filtered_df_generale[_tranche_anc_col].dropna().astype(str).value_counts()
+        if not _tranche_counts.empty:
+            anciennete_value = _tranche_counts.index[0]
+
     cards = [
         ("Nombre de Repondant", f"{total_effectif}", "&#128101;"),
-        (f"Nombre d'Hommes ({kpi['nombre_hommes']})", f'<span class="rps-score-value" data-rps-score="true" data-rps-target="{pourcentage_hommes}" data-rps-decimals="1" data-rps-suffix="%" data-rps-final="{pourcentage_hommes:.1f}%">0.0%</span>', f'<img class="card-footer-image" src="data:image/png;base64,{homme_img_b64}" alt="homme" />'),
-        (f"Nombre de Femmes ({kpi['nombre_femmes']})", f'<span class="rps-score-value" data-rps-score="true" data-rps-target="{pourcentage_femmes}" data-rps-decimals="1" data-rps-suffix="%" data-rps-final="{pourcentage_femmes:.1f}%">0.0%</span>', f'<img class="card-footer-image" src="data:image/png;base64,{femme_img_b64}" alt="femme" />'),
-        (age_kpi_label, age_moyen_display, f'<img class="card-footer-image" src="data:image/png;base64,{age_img_b64}" alt="age" />'),
-        ("Taux de consomamation d'alcool", f'<span class="rps-score-value" data-rps-score="true" data-rps-target="{kpi["taux_alcool"]}" data-rps-decimals="1" data-rps-suffix="%" data-rps-final="{kpi["taux_alcool"]:.1f}%">0.0%</span>', f'<img class="card-footer-image" src="data:image/png;base64,{alcool_img_b64}" alt="alcool" />'),
-        ("Taux de consomamation de tabac", f'<span class="rps-score-value" data-rps-score="true" data-rps-target="{kpi["taux_fumeur"]}" data-rps-decimals="1" data-rps-suffix="%" data-rps-final="{kpi["taux_fumeur"]:.1f}%">0.0%</span>', f'<img class="card-footer-image" src="data:image/png;base64,{fume_img_b64}" alt="fumeur" />'),
+        (genre_dominant_label,
+         f'<span class="rps-score-value" data-rps-score="true" data-rps-target="{genre_dominant_pct}" '
+         f'data-rps-decimals="1" data-rps-suffix="%" data-rps-final="{genre_dominant_pct:.1f}%">0.0%</span>',
+         f'<img class="card-footer-image" src="data:image/png;base64,{genre_dominant_img}" alt="{genre_dominant_alt}" />'),
+        (age_kpi_label, age_moyen_display,
+         f'<img class="card-footer-image" src="data:image/png;base64,{age_img_b64}" alt="age" />'),
+        (anciennete_label, anciennete_value, anciennete_emoji),
+        ("Taux de consomamation d'alcool",
+         f'<span class="rps-score-value" data-rps-score="true" data-rps-target="{kpi["taux_alcool"]}" '
+         f'data-rps-decimals="1" data-rps-suffix="%" data-rps-final="{kpi["taux_alcool"]:.1f}%">0.0%</span>',
+         f'<img class="card-footer-image" src="data:image/png;base64,{alcool_img_b64}" alt="alcool" />'),
+        ("Taux de consomamation de tabac",
+         f'<span class="rps-score-value" data-rps-score="true" data-rps-target="{kpi["taux_fumeur"]}" '
+         f'data-rps-decimals="1" data-rps-suffix="%" data-rps-final="{kpi["taux_fumeur"]:.1f}%">0.0%</span>',
+         f'<img class="card-footer-image" src="data:image/png;base64,{fume_img_b64}" alt="fumeur" />'),
         ("Risque Cardio-Vasculaire", cardio_value_html, cardio_icon),
-        ("Situation matrimoniale", top_situation, f'<img class="card-footer-image" src="data:image/png;base64,{couple_img_b64}" alt="situation matrimoniale" />'),
+        ("Situation matrimoniale", top_situation,
+         f'<img class="card-footer-image" src="data:image/png;base64,{couple_img_b64}" alt="situation matrimoniale" />'),
     ]
 
     cards_html = ""
@@ -2118,7 +2157,31 @@ with tab_analyse_simple:
     if analyse_df.empty:
         st.info("Aucune donnee disponible pour l'analyse univariee.")
     else:
-        selected_col = st.selectbox("Variable", analyse_df.columns.tolist(), key="analyse_simple_variable")
+        _ALLOWED_UNIVARIATE = [
+            "Genre", "Sexe",
+            "Situation matrimoniale",
+            "Poste de travail", "Poste",
+            "Direction",
+            "Departement", "Département",
+            "Service",
+            "Fonction",
+            "Tranche anciennete", "Tranche ancienneté",
+            "Tranche d'age", "Tranche d'âge",
+            "Consommation reguliere alcool", "Alcool",
+            "Tabagisme", "Tabac",
+            "Categorie IMC", "Catégorie IMC",
+            "Pratique reguliere sport", "Sport",
+        ]
+        _allowed_norm = [_normalize_text(c) for c in _ALLOWED_UNIVARIATE]
+        _univariate_cols = [
+            col for col in analyse_df.columns
+            if _normalize_text(str(col)) in _allowed_norm
+        ]
+        if not _univariate_cols:
+            st.warning("Aucune variable démographique reconnue dans le fichier.")
+            st.stop()
+
+        selected_col = st.selectbox("Variable", _univariate_cols, key="analyse_simple_variable")
         series_for_univariate = analyse_df[selected_col]
         recomputed_five = False
 

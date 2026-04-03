@@ -921,16 +921,26 @@ with tab_gen:
     else:
         sit_top, sit_n, sit_pct = "N/A", 0, 0.0
 
-    c1,c2,c3,c4,c5 = st.columns(5)
+    # ── Genre dominant uniquement ──────────────────────────────────────────
+    if n_men >= n_women:
+        genre_label = "Hommes"
+        genre_n     = n_men
+        genre_icon  = svg_icon("M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4M5 21a7 7 0 0 1 14 0","rgba(56,163,232,0.1)","#38A3E8")
+    else:
+        genre_label = "Femmes"
+        genre_n     = n_women
+        genre_icon  = svg_icon("M12 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4M8 15h8l1.5 6h-11zM12 15v6","rgba(249,115,22,0.1)","#F97316")
+
+    genre_pct = genre_n / total_n * 100 if total_n > 0 else 0.0
+
+    c1,c2,c3,c4 = st.columns(4)   # ← 4 colonnes au lieu de 5
     with c1: st.markdown(html_kpi(total_n,"Effectif total",
         icon=svg_icon("M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9.5 7a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a3 3 0 0 1 0 5.75","rgba(56,163,232,0.1)","#38A3E8")), unsafe_allow_html=True)
-    with c2: st.markdown(html_kpi(n_men/total_n*100 if total_n>0 else 0,"Hommes",suffix="%",decimals=0,subtitle=f"{n_men}",
-        icon=svg_icon("M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4M5 21a7 7 0 0 1 14 0","rgba(56,163,232,0.1)","#38A3E8")), unsafe_allow_html=True)
-    with c3: st.markdown(html_kpi(n_women/total_n*100 if total_n>0 else 0,"Femmes",suffix="%",decimals=0,subtitle=f"{n_women}",
-        icon=svg_icon("M12 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4M8 15h8l1.5 6h-11zM12 15v6","rgba(249,115,22,0.1)","#F97316")), unsafe_allow_html=True)
-    with c4: st.markdown(html_kpi(avg_age,"Âge moyen",suffix=" ans",decimals=0,
+    with c2: st.markdown(html_kpi(genre_pct, genre_label, suffix="%", decimals=0, subtitle=f"{genre_n}",
+        icon=genre_icon), unsafe_allow_html=True)
+    with c3: st.markdown(html_kpi(avg_age,"Âge moyen",suffix=" ans",decimals=0,
         icon=svg_icon("M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z","rgba(249,115,22,0.1)","#F97316")), unsafe_allow_html=True)
-    with c5: st.markdown(html_kpi(sit_pct,"Situation matrimoniale",suffix="%",decimals=0,subtitle=f"{sit_top} — {sit_n}",
+    with c4: st.markdown(html_kpi(sit_pct,"Situation matrimoniale",suffix="%",decimals=0,subtitle=f"{sit_top} — {sit_n}",
         icon=svg_icon("M12 21.7C5.4 21.7 2 16.4 2 12S5.4 2.3 12 2.3 22 7.6 22 12s-3.4 9.7-10 9.7zM8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01","rgba(34,197,94,0.1)","#22C55E")), unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
